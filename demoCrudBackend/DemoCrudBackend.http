@@ -1,0 +1,6 @@
+@DemoCrudBackend_HostAddress = http://localhost:5118
+
+GET {{DemoCrudBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
