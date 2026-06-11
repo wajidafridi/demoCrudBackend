@@ -1,4 +1,5 @@
-﻿using DemoCrudBackend.Models;
+﻿using DemoCrudBackend.Dtos;
+using DemoCrudBackend.Models;
 using DemoCrudBackend.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,14 +11,14 @@ namespace DemoCrudBackend.Controllers
     public class UsersController(IUserService service) : ControllerBase
     {
         [HttpGet]
-        public async Task<ActionResult<List<User>>> GetUsers()
+        public async Task<ActionResult<List<UserResponseDto>>> GetUsers()
         {
             return Ok(await service.GetAllUsersAsync());
         }
 
         [HttpGet("{id}")]
 
-        public async Task<ActionResult<User>> GetUser(int id)
+        public async Task<ActionResult<UserResponseDto>> GetUserById(int id)
         {
             var user = await service.GetUserByIdAsync(id);
 
@@ -29,14 +30,14 @@ namespace DemoCrudBackend.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<User>> AddUser(User user)
+        public async Task<ActionResult<UserResponseDto>> AddUser(CreateUserRequestDto user)
         {
             var createdUser = await service.AddUserAsync(user);
-            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, createdUser);
+            return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateUser(int id, User user)
+        public async Task<ActionResult> UpdateUser(int id, UpdateUserRequestDto user)
         {
             var updated = await service.UpdateUserAsync(id, user);
 

@@ -1,31 +1,49 @@
 ﻿using DemoCrudBackend.Data;
+using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace DemoCrudBackend.Services
 {
     public class UserService(ApplicationDbContext context) : IUserService
     {
-        public async Task<User> AddUserAsync(User user)
+        public async Task<UserResponseDto> AddUserAsync(CreateUserRequestDto user)
         {
+            var hasher = new PasswordHasher<User>();
+
             var newUser = new User
             {
                 Email = user.Email,
                 RoleId = user.RoleId,
+                Address = user.Address,
                 LastName = user.LastName,
                 UserName = user.UserName,
                 FirstName = user.FirstName,
                 CreatedAt = DateTime.UtcNow,
-                PasswordHash = user.PasswordHash,
+                PasswordHash = user.Password,
+                DateOfBirth = user.DateOfBirth,
+                PhoneNumber = user.PhoneNumber,
             };
+
+            newUser.PasswordHash = hasher.HashPassword(newUser, user.Password);
 
             context.Users.Add(newUser);
             await context.SaveChangesAsync();
 
-            return newUser;
+            return new UserResponseDto
+            {
+                Id = newUser.Id,
+                Email = newUser.Email,
+                RoleId = newUser.RoleId,
+                LastName = newUser.LastName,
+                UserName = newUser.UserName,
+                FirstName = newUser.FirstName,
+                CreatedAt = newUser.CreatedAt,
+            };
         }
 
         public async Task<bool> DeleteUserAsync(int id)
@@ -43,18 +61,57 @@ namespace DemoCrudBackend.Services
             return true;
         }
 
-        public async Task<List<User>> GetAllUsersAsync()
+        public async Task<List<User>> GetAllUsersAsync1()
         {
             return await context.Users.ToListAsync();
         }
 
-        public async Task<User?> GetUserByIdAsync(int id)
+        public async Task<List<UserResponseDto>> GetAllUsersAsync()
         {
-            var result = await context.Users.FindAsync(id);
-            return result;
+            return await context.Users
+                .Select(user => new UserResponseDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    UserName = user.UserName,
+                    RoleId = user.RoleId,
+                    Address = user.Address,
+                    PhoneNumber = user.PhoneNumber,
+                    Gender = user.Gender,
+                    DateOfBirth = user.DateOfBirth,
+                    ImageUrl = user.ImageUrl,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt
+                })
+                .ToListAsync();
         }
 
-        public async Task<bool> UpdateUserAsync(int id, User user)
+        public async Task<UserResponseDto?> GetUserByIdAsync(int id)
+        {
+            return await context.Users
+                .Where(x => x.Id == id)
+                .Select(user => new UserResponseDto {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    UserName = user.UserName,
+                    RoleId = user.RoleId,
+                    Address = user.Address,
+                    PhoneNumber = user.PhoneNumber,
+                    Gender = user.Gender,
+                    DateOfBirth = user.DateOfBirth,
+                    ImageUrl = user.ImageUrl,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt
+
+                })
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> UpdateUserAsync(int id, UpdateUserRequestDto user)
         {
             var existingUser = await context.Users.FindAsync(id);
 
@@ -65,11 +122,13 @@ namespace DemoCrudBackend.Services
 
             existingUser.Email = user.Email;
             existingUser.RoleId = user.RoleId;
+            existingUser.Address = user.Address;
             existingUser.LastName = user.LastName;
             existingUser.UserName = user.UserName;
             existingUser.FirstName = user.FirstName;
             existingUser.UpdatedAt = DateTime.UtcNow;
-            existingUser.PasswordHash = user.PasswordHash;
+            existingUser.DateOfBirth = user.DateOfBirth;
+            existingUser.PhoneNumber = user.PhoneNumber;
 
             await context.SaveChangesAsync();
 

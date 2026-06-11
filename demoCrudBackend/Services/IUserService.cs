@@ -1,13 +1,14 @@
-﻿using DemoCrudBackend.Models;
+﻿using DemoCrudBackend.Dtos;
+using DemoCrudBackend.Models;
 
 namespace DemoCrudBackend.Services
 {
     public interface IUserService
     {
-        Task<List<User>> GetAllUsersAsync();
-        Task<User?> GetUserByIdAsync(int id);
-        Task<User> AddUserAsync(User user);
-        Task<bool> UpdateUserAsync(int id, User user);
+        Task<List<UserResponseDto>> GetAllUsersAsync();
+        Task<UserResponseDto?> GetUserByIdAsync(int id);
+        Task<UserResponseDto> AddUserAsync(CreateUserRequestDto user);
+        Task<bool> UpdateUserAsync(int id, UpdateUserRequestDto user);
         Task<bool> DeleteUserAsync(int id);
 
     }
