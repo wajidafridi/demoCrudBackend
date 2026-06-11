@@ -27,5 +27,37 @@ namespace DemoCrudBackend.Controllers
             }
             return Ok(user);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<User>> AddUser(User user)
+        {
+            var createdUser = await service.AddUserAsync(user);
+            return CreatedAtAction(nameof(GetUser), new { id = createdUser.Id }, createdUser);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateUser(int id, User user)
+        {
+            var updated = await service.UpdateUserAsync(id, user);
+
+            if (updated)
+            {
+                return NoContent();
+            }
+
+            return NotFound($"User with id = {id} was not found.");
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteUser(int id)
+        {
+            var deleted = await service.DeleteUserAsync(id);
+
+            if (deleted)
+            {
+                return NoContent();
+            }
+            return NotFound($"User with id = {id} was not found.");
+        }
     }
 }

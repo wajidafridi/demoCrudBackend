@@ -1,41 +1,79 @@
-﻿using DemoCrudBackend.Models;
+﻿using DemoCrudBackend.Data;
+using DemoCrudBackend.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DemoCrudBackend.Services
 {
-    public class UserService : IUserService
+    public class UserService(ApplicationDbContext context) : IUserService
     {
-        static List<User> users = new List<User>
+        public async Task<User> AddUserAsync(User user)
         {
-            new User { Id = 1, FirstName = "John", LastName = "Doe", Email = "user1@example.com", UserName = "user1", RoleId = 1 },
-            new User { Id = 2, FirstName = "Jane", LastName = "Smith", Email = "user2@example.com", UserName = "janesmith", RoleId = 2 },
-            new User { Id = 3, FirstName = "Alice", LastName = "Johnson", Email = "user3@example.com", UserName = "alicejohnson", RoleId = 1 }
-        };
+            var newUser = new User
+            {
+                Email = user.Email,
+                RoleId = user.RoleId,
+                LastName = user.LastName,
+                UserName = user.UserName,
+                FirstName = user.FirstName,
+                CreatedAt = DateTime.UtcNow,
+                PasswordHash = user.PasswordHash,
+            };
 
-        public Task<User> AddUserAsync(User user)
-        {
-            throw new NotImplementedException();
+            context.Users.Add(newUser);
+            await context.SaveChangesAsync();
+
+            return newUser;
         }
 
-        public Task<bool> DeleteUserAsync(int id)
+        public async Task<bool> DeleteUserAsync(int id)
         {
-            throw new NotImplementedException();
+            var userToDelete = await context.Users.FindAsync(id);
+
+            if(userToDelete is null)
+            {
+                return false;
+            }
+
+            context.Users.Remove(userToDelete);
+            await context.SaveChangesAsync();
+
+            return true;
         }
 
         public async Task<List<User>> GetAllUsersAsync()
         {
-            return await Task.FromResult(users);
+            return await context.Users.ToListAsync();
         }
 
         public async Task<User?> GetUserByIdAsync(int id)
         {
-            var result = users.FirstOrDefault(u => u.Id == id);
-            return await Task.FromResult(result);
+            var result = await context.Users.FindAsync(id);
+            return result;
         }
 
-        public Task<bool> UpdateUserAsync(int id, User user)
+        public async Task<bool> UpdateUserAsync(int id, User user)
         {
-            throw new NotImplementedException();
+            var existingUser = await context.Users.FindAsync(id);
+
+            if (existingUser is null) 
+            {
+                return false;
+            }
+
+            existingUser.Email = user.Email;
+            existingUser.RoleId = user.RoleId;
+            existingUser.LastName = user.LastName;
+            existingUser.UserName = user.UserName;
+            existingUser.FirstName = user.FirstName;
+            existingUser.UpdatedAt = DateTime.UtcNow;
+            existingUser.PasswordHash = user.PasswordHash;
+
+            await context.SaveChangesAsync();
+
+            return true;
         }
     }
 }
