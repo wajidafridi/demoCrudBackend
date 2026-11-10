@@ -22,6 +22,181 @@ namespace DemoCrudBackend.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("DemoCrudBackend.Models.Right", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Rights");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "User_View"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "User_Create"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "User_Edit"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "User_Delete"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Role_View"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Role_Create"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Name = "Role_Edit"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Name = "Role_Delete"
+                        });
+                });
+
+            modelBuilder.Entity("DemoCrudBackend.Models.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "SuperAdmin"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Admin"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "User"
+                        });
+                });
+
+            modelBuilder.Entity("DemoCrudBackend.Models.RoleRight", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RightId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RoleId", "RightId");
+
+                    b.HasIndex("RightId");
+
+                    b.ToTable("RoleRights");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 1
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 2
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 3
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 4
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 5
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 6
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 7
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 8
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 1
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 2
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 3
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 4
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            RightId = 1
+                        });
+                });
+
             modelBuilder.Entity("DemoCrudBackend.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -78,7 +253,68 @@ namespace DemoCrudBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RoleId");
+
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Address = "123 Admin St",
+                            CreatedAt = new DateTime(2026, 6, 23, 12, 42, 16, 708, DateTimeKind.Utc).AddTicks(8602),
+                            DateOfBirth = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "superadmin@email.com",
+                            FirstName = "Super",
+                            Gender = "Male",
+                            LastName = "Admin",
+                            PasswordHash = "AQAAAAIAAYagAAAAEL0tk8ql339knuAjCF3pcFH+AYsnV+XGu5j+lif0bILBs8ysx4JFlJ9BfXNMA4dFhQ==",
+                            PhoneNumber = "123-456-7890",
+                            RoleId = 1,
+                            UserName = "superadmin"
+                        });
+                });
+
+            modelBuilder.Entity("DemoCrudBackend.Models.RoleRight", b =>
+                {
+                    b.HasOne("DemoCrudBackend.Models.Right", "Right")
+                        .WithMany("RoleRight")
+                        .HasForeignKey("RightId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DemoCrudBackend.Models.Role", "Role")
+                        .WithMany("RoleRight")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Right");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("DemoCrudBackend.Models.User", b =>
+                {
+                    b.HasOne("DemoCrudBackend.Models.Role", "Role")
+                        .WithMany("Users")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("DemoCrudBackend.Models.Right", b =>
+                {
+                    b.Navigation("RoleRight");
+                });
+
+            modelBuilder.Entity("DemoCrudBackend.Models.Role", b =>
+                {
+                    b.Navigation("RoleRight");
+
+                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

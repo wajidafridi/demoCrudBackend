@@ -2,6 +2,7 @@
 using DemoCrudBackend.Models;
 using DemoCrudBackend.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DemoCrudBackend.Controllers
@@ -17,7 +18,6 @@ namespace DemoCrudBackend.Controllers
         }
 
         [HttpGet("{id}")]
-
         public async Task<ActionResult<UserResponseDto>> GetUserById(int id)
         {
             var user = await service.GetUserByIdAsync(id);

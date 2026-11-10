@@ -25,6 +25,8 @@ namespace DemoCrudBackend.Models
 
         public int RoleId { get; set; }
 
+        public Role Role { get; set; } = null!;
+
         public string? Address { get; set; }
 
         public string? PhoneNumber { get; set; }

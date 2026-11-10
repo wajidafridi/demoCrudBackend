@@ -68,6 +68,7 @@ namespace DemoCrudBackend.Services
 
         public async Task<List<UserResponseDto>> GetAllUsersAsync()
         {
+
             return await context.Users
                 .Select(user => new UserResponseDto
                 {
