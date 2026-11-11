@@ -11,7 +11,8 @@ namespace DemoCrudBackend.Services
     public class AuthService(
         ApplicationDbContext context,
         IPasswordHasher<User> passwordHasher,
-        ILogger<AuthService> logger) : IAuthService
+        ILogger<AuthService> logger,
+        ITokenService tokenService) : IAuthService
     {
         public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest)
         {
@@ -75,13 +76,22 @@ namespace DemoCrudBackend.Services
                     return null;
             }
 
+            if (user.Role is null || string.IsNullOrWhiteSpace(user.Role.Name))
+            {
+                throw new InvalidOperationException("The user role must be loaded before creating an access token.");
+            }
+
+            var accessToken = tokenService.CreateAccessToken(user.Id, user.UserName, user.Role.Name);
+
             return new LoginResponseDto
             {
                 Id = user.Id,
                 UserName = user.UserName,
                 Email = user.Email,
                 RoleId = user.RoleId,
-                RoleName = user.Role.Name
+                RoleName = user.Role.Name,
+                AccessToken = accessToken.AccessToken,
+                ExpiresAtUtc = accessToken.ExpiresAtUtc
             };
         }
     }

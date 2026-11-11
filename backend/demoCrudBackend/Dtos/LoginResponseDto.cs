@@ -11,5 +11,9 @@
         public int RoleId { get; set; }
 
         public string? RoleName { get; set; }
+
+        public string AccessToken { get; set; } = string.Empty;
+
+        public DateTime ExpiresAtUtc { get; set; }
     }
 }
