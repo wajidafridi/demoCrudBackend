@@ -61,12 +61,13 @@ namespace DemoCrudBackend.Services
             {
                 Email = user.Email,
                 RoleId = user.RoleId,
+                Gender = user.Gender,
                 Address = user.Address,
                 LastName = user.LastName,
                 UserName = user.UserName,
+                ImageUrl = user.ImageUrl,
                 FirstName = user.FirstName,
                 CreatedAt = DateTime.UtcNow,
-                PasswordHash = user.Password,
                 DateOfBirth = user.DateOfBirth,
                 PhoneNumber = user.PhoneNumber,
             };
@@ -81,10 +82,16 @@ namespace DemoCrudBackend.Services
                 Id = newUser.Id,
                 Email = newUser.Email,
                 RoleId = newUser.RoleId,
-                LastName = newUser.LastName,
                 UserName = newUser.UserName,
+                LastName = newUser.LastName,
                 FirstName = newUser.FirstName,
+                Gender = newUser.Gender,
+                Address = newUser.Address,
+                ImageUrl = newUser.ImageUrl,
+                PhoneNumber = newUser.PhoneNumber,
+                DateOfBirth = newUser.DateOfBirth,
                 CreatedAt = newUser.CreatedAt,
+                UpdatedAt = newUser.UpdatedAt
             };
         }
 
@@ -99,9 +106,11 @@ namespace DemoCrudBackend.Services
 
             existingUser.Email = user.Email;
             existingUser.RoleId = user.RoleId;
+            existingUser.Gender = user.Gender;
             existingUser.Address = user.Address;
             existingUser.LastName = user.LastName;
             existingUser.UserName = user.UserName;
+            existingUser.ImageUrl = user.ImageUrl;
             existingUser.FirstName = user.FirstName;
             existingUser.UpdatedAt = DateTime.UtcNow;
             existingUser.DateOfBirth = user.DateOfBirth;
