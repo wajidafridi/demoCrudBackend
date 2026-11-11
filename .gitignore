@@ -361,3 +361,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Frontend (Vue / Vite). Scoped so existing .NET ignore rules stay unchanged.
+# node_modules/ is already ignored above.
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/*.local
+frontend/.eslintcache
