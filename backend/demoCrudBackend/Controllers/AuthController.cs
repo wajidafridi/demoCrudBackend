@@ -1,24 +1,24 @@
 ﻿using DemoCrudBackend.Dtos;
-using Microsoft.AspNetCore.Http;
+using DemoCrudBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DemoCrudBackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthController(IAuthService authService) : ControllerBase
     {
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto loginRequest)
         {
-            // Implement your login logic here
-            // For example, validate the user credentials and return a token if valid
-            // Placeholder response for demonstration purposes
-            if (loginRequest.Username == "admin" && loginRequest.Password == "password")
+            var response = await authService.LoginAsync(loginRequest);
+
+            if (response is null)
             {
-                return Ok(new { Token = "your_generated_token_here" });
+                return Unauthorized("Invalid username or password.");
             }
-            return Unauthorized("Invalid username or password.");
+
+            return Ok(response);
         }
     }
 }

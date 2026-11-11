@@ -1,5 +1,7 @@
 using DemoCrudBackend.Data;
+using DemoCrudBackend.Models;
 using DemoCrudBackend.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -12,6 +14,8 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection");
