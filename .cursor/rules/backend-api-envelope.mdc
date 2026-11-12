@@ -1,0 +1,32 @@
+---
+description: Unified ApiResponse envelope, pagination, and controller helpers
+globs: backend/demoCrudBackend/Controllers/**/*.cs,backend/demoCrudBackend/Common/**/*.cs
+alwaysApply: false
+---
+
+# API response envelope
+
+All HTTP APIs return the shared envelope from `Common/`:
+
+```json
+{
+  "success": true,
+  "message": "...",
+  "data": {},
+  "pagination": null,
+  "errors": null
+}
+```
+
+## Types
+
+- Non-paginated: `ApiResponse<T>` — **`pagination` always null** (login, get-by-id, create, update, delete, failures).
+- Paginated lists: `PagedApiResponse<T>` — **required** `PaginationMetadata` (`pageNumber`, `pageSize`, `totalCount`, `totalPages`, `hasPreviousPage`, `hasNextPage`).
+- Controllers inherit `ApiControllerBase` and use `ApiOk`, `ApiOkPaged`, `ApiCreated`, `ApiNotFound`, `ApiBadRequest`, `ApiConflict`, `ApiForbidden`, `ApiUnauthorized`.
+- Do not return raw DTOs, bare strings, or ad-hoc anonymous error objects from controllers.
+
+## OpenAPI / Scalar
+
+- Keep non-paged and paged types separate so Scalar does not invent a pagination object on login.
+- Model validation uses `ApiValidation.InvalidModelStateResponse` → `success: false`, `message: "Validation failed"`, field `errors`.
+- Auth failures use `ApiAuthorizationMiddlewareResultHandler` for envelope-shaped 401/403.

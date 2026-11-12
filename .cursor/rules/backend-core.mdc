@@ -1,0 +1,20 @@
+---
+description: Non-negotiable backend architecture and stack for demoCrudBackend
+globs: backend/**/*
+alwaysApply: true
+---
+
+# Backend core
+
+- Stack: ASP.NET Core Web API, **.NET 10**, EF Core 9, Pomelo MySQL, DB `demoCrudDb`.
+- Architecture: **Controller → Service → DbContext** only. No repository pattern, no MediatR, no generic auth framework unless explicitly requested.
+- Keep MySQL. Do not change DB provider or invent schema migrations without need.
+- Prefer small, focused changes. Do not refactor unrelated files.
+- Learning project: prefer clear code over clever abstractions.
+- Frontend rules will be added later; do not invent FE conventions here.
+
+## Seed / local auth
+
+- Seeded SuperAdmin: username `superadmin`, password `Admin@123` (hash in seed only).
+- JWT signing key lives in **user secrets**, never commit real keys.
+- VS debug often locks `DemoCrudBackend.exe`; build to an alternate output if needed and ask the user to restart the debug session.

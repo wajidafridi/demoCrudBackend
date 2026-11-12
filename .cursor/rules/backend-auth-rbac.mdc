@@ -1,0 +1,28 @@
+---
+description: JWT auth, permission policies, and SuperAdmin IsSystem protection
+globs: backend/demoCrudBackend/Authorization/**/*.cs,backend/demoCrudBackend/Services/Auth*.cs,backend/demoCrudBackend/Services/Token*.cs,backend/demoCrudBackend/Services/User*.cs,backend/demoCrudBackend/Controllers/Auth*.cs,backend/demoCrudBackend/Controllers/Users*.cs
+alwaysApply: false
+---
+
+# Auth and RBAC
+
+## JWT
+
+- Login is public (`[AllowAnonymous]`). Other APIs require authentication + permission policies.
+- Token claims: `NameIdentifier`, `Name`, `Role`, repeated `"permission"` claims from RoleRights.
+- Permissions are a **snapshot until token expiry** (~30 min). Service-layer rules still protect system resources.
+- Pass `CancellationToken` through login and user service methods.
+
+## Permissions
+
+- Seeded rights include `User_*` and `Role_*`. Register policies in `Program.cs` for endpoints you expose.
+- Controllers use `[Authorize(Policy = Permissions.X)]`. Handler requires authenticated user, a role claim, and matching permission claim.
+- Do **not** hardcode business role names (`Admin`, `User`, `Coordinator`, …) in authorization logic.
+
+## SuperAdmin / system protection
+
+- Exactly one seeded system user and one system role: `User.IsSystem` / `Role.IsSystem`.
+- Never trust `IsSystem` from request DTOs; always load from DB.
+- Forbid: delete system user; change system user’s role; assign system role to anyone; (future) edit/delete system role or its RoleRights.
+- SuperAdmin may update own profile fields while keeping the system role.
+- `RoleAssignment` only holds small helpers + docs for future RoleRight guards — no Admin/User hierarchy.
