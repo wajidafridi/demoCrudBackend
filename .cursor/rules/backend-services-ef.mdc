@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Write results
 
-Use `UserWriteResult` / `UserWriteStatus` (or the same pattern for new resources):
+Use `WriteResult<T>` / `WriteStatus`:
 
 | Status | HTTP |
 |---|---|
@@ -16,20 +16,17 @@ Use `UserWriteResult` / `UserWriteStatus` (or the same pattern for new resources
 | NotFound | 404 |
 | Forbidden | 403 (authz / system rules / bad caller) |
 | ValidationFailed | 400 (blank fields, unknown RoleId, …) |
-| Conflict | 409 (duplicate username/email) |
+| Conflict | 409 (duplicate username, email, or role name; role still has users; right already assigned) |
 
 Include a clear `Message` when useful. Map in the controller via `ApiControllerBase` helpers — do not collapse validation into 403.
 
 ## Data rules
 
 - Unique indexes on `Users.UserName`, `Users.Email`, `Roles.Name`, `Rights.Name`.
-- Normalize username/email with **trim only** before save; check uniqueness in the service and catch MySQL duplicate-key on save.
-- `Users.RoleId` FK delete behavior is **Restrict** (no cascade-delete of users when deleting a role).
-- Prefer `AsNoTracking` for reads; pass `CancellationToken` to EF calls.
-- Name request DTOs `userRequest` (etc.) to distinguish from entities.
-
-## New APIs (Roles/Rights next)
-
-- Follow Controller → `I*Service` → DbContext.
-- Use `ApiResponse` / `PagedApiResponse`, permission policies, and system-role guards.
+- Normalize username, email, and role name with **trim only** before save. Check uniqueness in the service and catch MySQL duplicate-key on save (`MySqlErrors`).
+- Role names are compared case-insensitively. Creating or renaming to an existing name, including `SuperAdmin`, is 409.
+- `Users.RoleId` FK delete behavior is **Restrict**. Role delete checks for users and returns 409; the FK is the backup. `RoleRights` cascade when a role is deleted.
+- Prefer `AsNoTracking` for reads; pass `CancellationToken` to EF calls. Page with `PageRequest.Normalize`.
+- Name request DTOs `userRequest` / `roleRequest` / `rightsRequest` to distinguish from entities.
+- Rights catalog and a role's visible rights are filtered to the caller permission claims. Do not add right create/update/delete APIs unless asked.
 - No repository layer.

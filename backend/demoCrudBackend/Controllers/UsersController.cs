@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using System.Security.Claims;
-using DemoCrudBackend.Authorization;
+﻿using DemoCrudBackend.Authorization;
 using DemoCrudBackend.Common;
 using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Services;
@@ -48,14 +46,14 @@ namespace DemoCrudBackend.Controllers
             CreateUserRequestDto userRequest,
             CancellationToken cancellationToken)
         {
-            var result = await service.AddUserAsync(userRequest, CallerUserId(), cancellationToken);
+            var result = await service.AddUserAsync(userRequest, CallerContext.UserId(User), cancellationToken);
 
-            if (result.Status == UserWriteStatus.Success && result.User is not null)
+            if (result.Status == WriteStatus.Success && result.Data is not null)
             {
                 return ApiCreated(
                     nameof(GetUserById),
-                    new { id = result.User.Id },
-                    result.User,
+                    new { id = result.Data.Id },
+                    result.Data,
                     "User created successfully.");
             }
 
@@ -69,7 +67,7 @@ namespace DemoCrudBackend.Controllers
             UpdateUserRequestDto userRequest,
             CancellationToken cancellationToken)
         {
-            var result = await service.UpdateUserAsync(id, userRequest, CallerUserId(), cancellationToken);
+            var result = await service.UpdateUserAsync(id, userRequest, CallerContext.UserId(User), cancellationToken);
             return MapWriteResult(result, id, "User updated successfully.");
         }
 
@@ -79,13 +77,13 @@ namespace DemoCrudBackend.Controllers
             int id,
             CancellationToken cancellationToken)
         {
-            var result = await service.DeleteUserAsync(id, CallerUserId(), cancellationToken);
+            var result = await service.DeleteUserAsync(id, CallerContext.UserId(User), cancellationToken);
             return MapWriteResult(result, id, "User deleted successfully.");
         }
 
-        private ActionResult MapWriteResult(UserWriteResult result, int id, string successMessage)
+        private ActionResult MapWriteResult(WriteResult<UserResponseDto> result, int id, string successMessage)
         {
-            if (result.Status == UserWriteStatus.Success)
+            if (result.Status == WriteStatus.Success)
             {
                 return ApiOkMessage(successMessage);
             }
@@ -93,31 +91,15 @@ namespace DemoCrudBackend.Controllers
             return MapWriteFailure(result, id);
         }
 
-        private ActionResult MapWriteFailure(UserWriteResult result, int? id)
+        private ActionResult MapWriteFailure(WriteResult<UserResponseDto> result, int? id)
         {
-            return result.Status switch
-            {
-                UserWriteStatus.NotFound => ApiNotFound(
-                    result.Message ?? $"User with id = {id} was not found."),
-                UserWriteStatus.ValidationFailed => ApiBadRequest(
-                    result.Message ?? "The user request is invalid."),
-                UserWriteStatus.Conflict => ApiConflict(
-                    result.Message ?? "Username or email is already in use."),
-                UserWriteStatus.Forbidden => ApiForbidden(
-                    result.Message ?? ForbiddenWriteMessage),
-                _ => ApiForbidden(ForbiddenWriteMessage)
-            };
-        }
-
-        private int? CallerUserId()
-        {
-            var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var userId) || userId <= 0)
-            {
-                return null;
-            }
-
-            return userId;
+            return base.MapWriteFailure(
+                result.Status,
+                result.Message,
+                notFoundMessage: $"User with id = {id} was not found.",
+                validationMessage: "The user request is invalid.",
+                conflictMessage: "Username or email is already in use.",
+                forbiddenMessage: ForbiddenWriteMessage);
         }
     }
 }

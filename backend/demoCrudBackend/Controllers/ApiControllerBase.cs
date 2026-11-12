@@ -1,4 +1,5 @@
 using DemoCrudBackend.Common;
+using DemoCrudBackend.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DemoCrudBackend.Controllers
@@ -66,6 +67,24 @@ namespace DemoCrudBackend.Controllers
         protected ActionResult ApiUnauthorized(string message)
         {
             return ApiFail(StatusCodes.Status401Unauthorized, message);
+        }
+
+        protected ActionResult MapWriteFailure(
+            WriteStatus status,
+            string? message,
+            string notFoundMessage,
+            string validationMessage,
+            string conflictMessage,
+            string forbiddenMessage)
+        {
+            return status switch
+            {
+                WriteStatus.NotFound => ApiNotFound(message ?? notFoundMessage),
+                WriteStatus.ValidationFailed => ApiBadRequest(message ?? validationMessage),
+                WriteStatus.Conflict => ApiConflict(message ?? conflictMessage),
+                WriteStatus.Forbidden => ApiForbidden(message ?? forbiddenMessage),
+                _ => ApiForbidden(forbiddenMessage)
+            };
         }
     }
 }

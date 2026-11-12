@@ -12,7 +12,7 @@ namespace DemoCrudBackend.Models
 
         /// <summary>
         /// Protected system role (seeded SuperAdmin). Never accept this from request DTOs.
-        /// RoleRight APIs must reject add/remove when this flag is true.
+        /// Role APIs reject update, delete, and right changes when this flag is true.
         /// </summary>
         public bool IsSystem { get; set; }
 

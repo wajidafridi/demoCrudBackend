@@ -29,6 +29,8 @@ builder.Services.AddOpenApi(options =>
 });
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IRightService, RightService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -87,13 +89,7 @@ builder.Services
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddAuthorization(options =>
 {
-    foreach (var permission in new[]
-    {
-        Permissions.UserView,
-        Permissions.UserCreate,
-        Permissions.UserEdit,
-        Permissions.UserDelete
-    })
+    foreach (var permission in Permissions.All)
     {
         options.AddPolicy(permission, policy =>
         {
@@ -109,7 +105,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    options.AddPreferredSecuritySchemes("Bearer")
+    );
 }
 
 app.UseHttpsRedirection();

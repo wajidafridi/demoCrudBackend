@@ -9,6 +9,8 @@ Monorepo for the Demo CRUD application.
 
 ## Backend
 
+ASP.NET Core API with JWT auth, user CRUD, role CRUD, role-right assign/remove, and a read-only rights catalog. See `docs/PROJECT_CONTEXT.md` for the current API and seed.
+
 From the repository root:
 
 ```bash

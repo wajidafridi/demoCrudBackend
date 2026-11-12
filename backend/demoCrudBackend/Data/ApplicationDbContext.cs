@@ -64,7 +64,9 @@ namespace DemoCrudBackend.Data
                 new Right { Id = 5, Name = "Role_View" },
                 new Right { Id = 6, Name = "Role_Create" },
                 new Right { Id = 7, Name = "Role_Edit" },
-                new Right { Id = 8, Name = "Role_Delete" }
+                new Right { Id = 8, Name = "Role_Delete" },
+                new Right { Id = 9, Name = "RoleRight_Assign" },
+                new Right { Id = 10, Name = "Right_View" }
             );
 
             modelBuilder.Entity<RoleRight>().HasData(
@@ -77,12 +79,20 @@ namespace DemoCrudBackend.Data
                 new RoleRight { RoleId = 1, RightId = 6 },
                 new RoleRight { RoleId = 1, RightId = 7 },
                 new RoleRight { RoleId = 1, RightId = 8 },
+                new RoleRight { RoleId = 1, RightId = 9 },
+                new RoleRight { RoleId = 1, RightId = 10 },
 
-                // Admin → limited (ordinary dynamic role)
+                // Admin → user management plus role management (ordinary dynamic role)
                 new RoleRight { RoleId = 2, RightId = 1 },
                 new RoleRight { RoleId = 2, RightId = 2 },
                 new RoleRight { RoleId = 2, RightId = 3 },
                 new RoleRight { RoleId = 2, RightId = 4 },
+                new RoleRight { RoleId = 2, RightId = 5 },
+                new RoleRight { RoleId = 2, RightId = 6 },
+                new RoleRight { RoleId = 2, RightId = 7 },
+                new RoleRight { RoleId = 2, RightId = 8 },
+                new RoleRight { RoleId = 2, RightId = 9 },
+                new RoleRight { RoleId = 2, RightId = 10 },
 
                 // User → read-only (ordinary dynamic role)
                 new RoleRight { RoleId = 3, RightId = 1 }

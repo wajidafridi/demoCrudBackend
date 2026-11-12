@@ -7,7 +7,6 @@ using DemoCrudBackend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MySqlConnector;
 
 namespace DemoCrudBackend.Services
 {
@@ -16,10 +15,6 @@ namespace DemoCrudBackend.Services
         IPasswordHasher<User> passwordHasher,
         ILogger<UserService> logger) : IUserService
     {
-        private const int DefaultPageNumber = 1;
-        private const int DefaultPageSize = 20;
-        private const int MaxPageSize = 100;
-
         private static readonly Expression<Func<User, UserResponseDto>> UserResponseProjection = user =>
             new UserResponseDto
             {
@@ -44,10 +39,7 @@ namespace DemoCrudBackend.Services
             int pageSize,
             CancellationToken cancellationToken = default)
         {
-            var normalizedPageNumber = pageNumber < 1 ? DefaultPageNumber : pageNumber;
-            var normalizedPageSize = pageSize < 1
-                ? DefaultPageSize
-                : Math.Min(pageSize, MaxPageSize);
+            var (normalizedPageNumber, normalizedPageSize) = PageRequest.Normalize(pageNumber, pageSize);
 
             var query = context.Users.AsNoTracking();
             var totalCount = await query.CountAsync(cancellationToken);
@@ -75,35 +67,35 @@ namespace DemoCrudBackend.Services
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<UserWriteResult> AddUserAsync(
+        public async Task<WriteResult<UserResponseDto>> AddUserAsync(
             CreateUserRequestDto userRequest,
             int? callerUserId,
             CancellationToken cancellationToken = default)
         {
-            if (await ResolveCallerIdAsync(callerUserId, cancellationToken) is null)
+            if (await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken) is null)
             {
                 logger.LogWarning(
                     "Denied user creation because caller {CallerUserId} could not be resolved.",
                     callerUserId);
-                return UserWriteResult.Forbidden("You are not allowed to perform this user operation.");
+                return WriteResult<UserResponseDto>.Forbidden("You are not allowed to perform this user operation.");
             }
 
             var userName = NormalizeUserName(userRequest.UserName);
             if (userName is null)
             {
-                return UserWriteResult.ValidationFailed("Username is required.");
+                return WriteResult<UserResponseDto>.ValidationFailed("Username is required.");
             }
 
             var email = NormalizeEmail(userRequest.Email);
             if (email is null)
             {
-                return UserWriteResult.ValidationFailed("Email is required.");
+                return WriteResult<UserResponseDto>.ValidationFailed("Email is required.");
             }
 
             var requestedRole = await GetRoleAsync(userRequest.RoleId, cancellationToken);
             if (requestedRole is null)
             {
-                return UserWriteResult.ValidationFailed("The requested role does not exist.");
+                return WriteResult<UserResponseDto>.ValidationFailed("The requested role does not exist.");
             }
 
             if (requestedRole.IsSystem)
@@ -112,7 +104,7 @@ namespace DemoCrudBackend.Services
                     "Denied user creation. Caller {CallerUserId} cannot assign the system role {RequestedRoleId}.",
                     callerUserId,
                     userRequest.RoleId);
-                return UserWriteResult.Forbidden("You are not allowed to assign the system role.");
+                return WriteResult<UserResponseDto>.Forbidden("You are not allowed to assign the system role.");
             }
 
             var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: null, cancellationToken);
@@ -147,34 +139,34 @@ namespace DemoCrudBackend.Services
                 return saveResult;
             }
 
-            return UserWriteResult.Success(ToUserResponseDto(newUser, requestedRole.Name));
+            return WriteResult<UserResponseDto>.Success(ToUserResponseDto(newUser, requestedRole.Name));
         }
 
-        public async Task<UserWriteResult> UpdateUserAsync(
+        public async Task<WriteResult<UserResponseDto>> UpdateUserAsync(
             int id,
             UpdateUserRequestDto userRequest,
             int? callerUserId,
             CancellationToken cancellationToken = default)
         {
-            var callerId = await ResolveCallerIdAsync(callerUserId, cancellationToken);
+            var callerId = await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken);
             if (callerId is null)
             {
                 logger.LogWarning(
                     "Denied user update because caller {CallerUserId} could not be resolved.",
                     callerUserId);
-                return UserWriteResult.Forbidden("You are not allowed to perform this user operation.");
+                return WriteResult<UserResponseDto>.Forbidden("You are not allowed to perform this user operation.");
             }
 
             var userName = NormalizeUserName(userRequest.UserName);
             if (userName is null)
             {
-                return UserWriteResult.ValidationFailed("Username is required.");
+                return WriteResult<UserResponseDto>.ValidationFailed("Username is required.");
             }
 
             var email = NormalizeEmail(userRequest.Email);
             if (email is null)
             {
-                return UserWriteResult.ValidationFailed("Email is required.");
+                return WriteResult<UserResponseDto>.ValidationFailed("Email is required.");
             }
 
             var existingUser = await context.Users
@@ -182,13 +174,13 @@ namespace DemoCrudBackend.Services
 
             if (existingUser is null)
             {
-                return UserWriteResult.NotFound($"User with id = {id} was not found.");
+                return WriteResult<UserResponseDto>.NotFound($"User with id = {id} was not found.");
             }
 
             var requestedRole = await GetRoleAsync(userRequest.RoleId, cancellationToken);
             if (requestedRole is null)
             {
-                return UserWriteResult.ValidationFailed("The requested role does not exist.");
+                return WriteResult<UserResponseDto>.ValidationFailed("The requested role does not exist.");
             }
 
             if (existingUser.IsSystem)
@@ -199,7 +191,7 @@ namespace DemoCrudBackend.Services
                         "Denied update of system user {UserId} by caller {CallerUserId}.",
                         id,
                         callerId);
-                    return UserWriteResult.Forbidden("You are not allowed to modify the system user.");
+                    return WriteResult<UserResponseDto>.Forbidden("You are not allowed to modify the system user.");
                 }
 
                 if (RoleAssignment.IsRoleChange(existingUser.RoleId, userRequest.RoleId))
@@ -208,7 +200,7 @@ namespace DemoCrudBackend.Services
                         "Denied role change on system user {UserId} by caller {CallerUserId}.",
                         id,
                         callerId);
-                    return UserWriteResult.Forbidden("The system user role cannot be changed.");
+                    return WriteResult<UserResponseDto>.Forbidden("The system user role cannot be changed.");
                 }
             }
             else if (requestedRole.IsSystem)
@@ -218,7 +210,7 @@ namespace DemoCrudBackend.Services
                     userRequest.RoleId,
                     id,
                     callerId);
-                return UserWriteResult.Forbidden("You are not allowed to assign the system role.");
+                return WriteResult<UserResponseDto>.Forbidden("You are not allowed to assign the system role.");
             }
 
             var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: id, cancellationToken);
@@ -235,21 +227,21 @@ namespace DemoCrudBackend.Services
                 return saveResult;
             }
 
-            return UserWriteResult.Success();
+            return WriteResult<UserResponseDto>.Success();
         }
 
-        public async Task<UserWriteResult> DeleteUserAsync(
+        public async Task<WriteResult<UserResponseDto>> DeleteUserAsync(
             int id,
             int? callerUserId,
             CancellationToken cancellationToken = default)
         {
-            var callerId = await ResolveCallerIdAsync(callerUserId, cancellationToken);
+            var callerId = await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken);
             if (callerId is null)
             {
                 logger.LogWarning(
                     "Denied user delete because caller {CallerUserId} could not be resolved.",
                     callerUserId);
-                return UserWriteResult.Forbidden("You are not allowed to perform this user operation.");
+                return WriteResult<UserResponseDto>.Forbidden("You are not allowed to perform this user operation.");
             }
 
             var userToDelete = await context.Users
@@ -257,7 +249,7 @@ namespace DemoCrudBackend.Services
 
             if (userToDelete is null)
             {
-                return UserWriteResult.NotFound($"User with id = {id} was not found.");
+                return WriteResult<UserResponseDto>.NotFound($"User with id = {id} was not found.");
             }
 
             if (userToDelete.IsSystem)
@@ -266,32 +258,18 @@ namespace DemoCrudBackend.Services
                     "Denied delete of system user {UserId} by caller {CallerUserId}.",
                     id,
                     callerId);
-                return UserWriteResult.Forbidden("The system user cannot be deleted.");
+                return WriteResult<UserResponseDto>.Forbidden("The system user cannot be deleted.");
             }
 
             if (RoleAssignment.IsSelfDeletion(callerId.Value, id))
             {
                 logger.LogWarning("Denied self-delete of user {UserId}.", id);
-                return UserWriteResult.Forbidden("You cannot delete your own account.");
+                return WriteResult<UserResponseDto>.Forbidden("You cannot delete your own account.");
             }
 
             context.Users.Remove(userToDelete);
             await context.SaveChangesAsync(cancellationToken);
-            return UserWriteResult.Success();
-        }
-
-        private async Task<int?> ResolveCallerIdAsync(int? callerUserId, CancellationToken cancellationToken)
-        {
-            if (callerUserId is null || callerUserId <= 0)
-            {
-                return null;
-            }
-
-            var exists = await context.Users
-                .AsNoTracking()
-                .AnyAsync(user => user.Id == callerUserId.Value, cancellationToken);
-
-            return exists ? callerUserId : null;
+            return WriteResult<UserResponseDto>.Success();
         }
 
         private async Task<Role?> GetRoleAsync(int roleId, CancellationToken cancellationToken)
@@ -301,7 +279,7 @@ namespace DemoCrudBackend.Services
                 .FirstOrDefaultAsync(role => role.Id == roleId, cancellationToken);
         }
 
-        private async Task<UserWriteResult?> CheckUniquenessAsync(
+        private async Task<WriteResult<UserResponseDto>?> CheckUniquenessAsync(
             string userName,
             string email,
             int? excludeUserId,
@@ -316,7 +294,7 @@ namespace DemoCrudBackend.Services
 
             if (userNameTaken)
             {
-                return UserWriteResult.Conflict("Username is already taken.");
+                return WriteResult<UserResponseDto>.Conflict("Username is already taken.");
             }
 
             var emailTaken = await context.Users
@@ -328,38 +306,24 @@ namespace DemoCrudBackend.Services
 
             if (emailTaken)
             {
-                return UserWriteResult.Conflict("Email is already in use.");
+                return WriteResult<UserResponseDto>.Conflict("Email is already in use.");
             }
 
             return null;
         }
 
-        private async Task<UserWriteResult?> SaveChangesHandlingConflictsAsync(CancellationToken cancellationToken)
+        private async Task<WriteResult<UserResponseDto>?> SaveChangesHandlingConflictsAsync(CancellationToken cancellationToken)
         {
             try
             {
                 await context.SaveChangesAsync(cancellationToken);
                 return null;
             }
-            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            catch (DbUpdateException ex) when (MySqlErrors.IsDuplicateKey(ex))
             {
                 logger.LogWarning(ex, "Unique constraint violation while saving a user.");
-                return UserWriteResult.Conflict("Username or email is already in use.");
+                return WriteResult<UserResponseDto>.Conflict("Username or email is already in use.");
             }
-        }
-
-        private static bool IsUniqueConstraintViolation(DbUpdateException exception)
-        {
-            for (var current = exception.InnerException; current is not null; current = current.InnerException)
-            {
-                if (current is MySqlException mysql
-                    && mysql.ErrorCode == MySqlErrorCode.DuplicateKeyEntry)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static string? NormalizeUserName(string? userName)

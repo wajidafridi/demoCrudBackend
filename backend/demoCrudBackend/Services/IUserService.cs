@@ -12,18 +12,18 @@ namespace DemoCrudBackend.Services
 
         Task<UserResponseDto?> GetUserByIdAsync(int id, CancellationToken cancellationToken = default);
 
-        Task<UserWriteResult> AddUserAsync(
+        Task<WriteResult<UserResponseDto>> AddUserAsync(
             CreateUserRequestDto userRequest,
             int? callerUserId,
             CancellationToken cancellationToken = default);
 
-        Task<UserWriteResult> UpdateUserAsync(
+        Task<WriteResult<UserResponseDto>> UpdateUserAsync(
             int id,
             UpdateUserRequestDto userRequest,
             int? callerUserId,
             CancellationToken cancellationToken = default);
 
-        Task<UserWriteResult> DeleteUserAsync(
+        Task<WriteResult<UserResponseDto>> DeleteUserAsync(
             int id,
             int? callerUserId,
             CancellationToken cancellationToken = default);

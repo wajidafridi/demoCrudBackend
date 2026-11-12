@@ -17,9 +17,10 @@ project-root/
 ├── backend/
 │   └── demoCrudBackend/
 ├── frontend/               # Vue planned
-├── LEARNING_PROGRESS.md
-├── PROJECT_CONTEXT.md
-└── PROJECT_HANDOVER_PROMPT.md
+└── docs/
+    ├── LEARNING_PROGRESS.md
+    ├── PROJECT_CONTEXT.md
+    └── PROJECT_HANDOVER_PROMPT.md
 ```
 
 ## 3. Backend Technology
@@ -44,15 +45,34 @@ project-root/
 - Unique `UserName` / `Email`; trim normalization
 - Write statuses: Success / NotFound / Forbidden / ValidationFailed / Conflict
 
-### Roles / Rights (data ready, APIs pending)
-- Entities: Role, Right, RoleRight
-- Seeded roles: SuperAdmin (`IsSystem=true`), Admin, User
-- Seeded rights: `User_*`, `Role_*`
-- Role CRUD / RoleRight management APIs not implemented yet
+### Roles
+- `RolesController` / `RoleService`
+- Paged list and get-by-id hide `IsSystem` roles (missing and system both return 404)
+- Create and update take `{ "name" }` only. `IsSystem` is never accepted or returned
+- Name is trimmed, max 100, unique case-insensitively (409 if taken, including `SuperAdmin`)
+- Delete returns 409 while any user still has that `RoleId`. `Users.RoleId` stays `Restrict`. RoleRight rows cascade with the role
+- Update, delete, assign, and remove return 403 for the system role
+
+### Role rights
+- `GET /api/roles/{id}/rights` requires `Role_View` and returns only rights the caller already holds
+- `POST` assigns and `DELETE` removes `{ "rightIds": [1, 2] }`. Both require `RoleRight_Assign`
+- The batch is all-or-nothing. Unknown or duplicate ids are 400. Already assigned / not assigned is 409. A right the caller does not hold is 403, and rights they cannot see stay on the role
+
+### Rights
+- Read-only catalog: `GET /api/rights` requires `Right_View`
+- Paged, and filtered to permission names on the caller JWT
+- No create, update, or delete right API. New rights are added by code plus a seed migration
+
+### Seed (migration `20261112110243_SeedRoleManagementRights`, applied locally)
+- Rights: `User_*`, `Role_View`, `Role_Create`, `Role_Edit`, `Role_Delete`, `RoleRight_Assign`, `Right_View`
+- SuperAdmin (`IsSystem`) has every right
+- Admin is an ordinary role with user management plus `Role_View`, `Role_Create`, `Role_Edit`, `Role_Delete`, `RoleRight_Assign`, and `Right_View`
+- User has `User_View` only
+- Existing tokens do not gain new permission claims until the next login
 
 ### System protection
 - `User.IsSystem` / `Role.IsSystem` — never from client DTOs
-- Cannot delete/demote SuperAdmin or assign the system role via APIs
+- Cannot delete or demote the system user, assign the system role, or change the system role or its rights through normal APIs
 
 ### Common API envelope
 - `Common/ApiResponse.cs`, `PagedApiResponse<T>`, `PaginationMetadata`
@@ -62,6 +82,8 @@ project-root/
 ## 5. Dependency Injection (Program.cs)
 
 - `IUserService` → `UserService`
+- `IRoleService` → `RoleService`
+- `IRightService` → `RightService`
 - `IAuthService` → `AuthService`
 - `ITokenService` → `TokenService`
 - `IPasswordHasher<User>` → `PasswordHasher<User>`
@@ -79,14 +101,28 @@ project-root/
 
 ## 7. Known Pending Work
 
-- Role / Right / RoleRight HTTP APIs
-- Register remaining permission policies as endpoints are added
 - Automated backend tests
 - Global exception handling (optional hardening)
 - Vue frontend (login, token storage, guards, CRUD UI)
 - Frontend Cursor rules (later)
 
-## 8. Development Rules
+## 8. Role and rights HTTP API
+
+| Method | Path | Permission | Success |
+|---|---|---|---|
+| GET | `/api/roles` | `Role_View` | 200 paged |
+| GET | `/api/roles/{id}` | `Role_View` | 200 |
+| POST | `/api/roles` | `Role_Create` | 201 |
+| PUT | `/api/roles/{id}` | `Role_Edit` | 200 |
+| DELETE | `/api/roles/{id}` | `Role_Delete` | 200 |
+| GET | `/api/roles/{id}/rights` | `Role_View` | 200 |
+| POST | `/api/roles/{id}/rights` | `RoleRight_Assign` | 200 |
+| DELETE | `/api/roles/{id}/rights` | `RoleRight_Assign` | 200 |
+| GET | `/api/rights` | `Right_View` | 200 paged |
+
+Lists use `pageNumber` and `pageSize` (default 1 and 20, max 100). Write failures: 400 validation, 403 forbidden or system role, 404 missing or hidden system role on GET, 409 conflict.
+
+## 9. Development Rules
 
 - Understand before implementing.
 - Keep changes small and focused.

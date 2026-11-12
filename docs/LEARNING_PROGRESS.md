@@ -49,16 +49,26 @@ Status: COMPLETED (Users surface)
 - Global `ApiResponse` / `PagedApiResponse` envelope (Scalar-friendly pagination null on non-paged APIs).
 - Cursor rules added under `.cursor/rules/` for backend continuity.
 
+### Phase 5 — Role, role-right, and rights read APIs
+Status: COMPLETED
+
+- Role CRUD with paged list. System role is hidden on read (404) and rejected on write (403).
+- Explicit assign and remove of rights. Caller can change only rights already on their token. Unseen rights stay on the role.
+- Read-only paged rights catalog filtered to the caller. No right create/update/delete API.
+- Seeded `RoleRight_Assign` and `Right_View`. Admin also receives the role-management rights. User stays `User_View` only.
+- Migration `20261112110243_SeedRoleManagementRights` applied to local `demoCrudDb`.
+- Shared `WriteResult<T>`, `PageRequest`, `CallerLookup`, `CallerContext`, and `MySqlErrors`.
+- Manual HTTP checks passed (auth, hide/reject system role, conflicts, privilege filter, delete blocked while users are assigned). Re-login is required before old tokens see the new permissions.
+
 ## Current Phase
 
-### Phase 5 — Role / Right APIs and backend cleanup
+### Phase 6 — Backend tests, then Vue
 Status: NEXT
 
 Planned:
-- Role CRUD + RoleRight assign/remove (protect `Role.IsSystem`).
-- Right CRUD (as needed) + register `Role_*` / `Right_*` policies.
-- Further testing/hardening as needed.
-- Then Vue frontend.
+- Automated backend tests for auth, users, roles, and role rights.
+- Optional global exception handling.
+- Then Vue frontend (login, token storage, guards, CRUD UI).
 
 ## Important Decisions
 
@@ -72,4 +82,4 @@ Planned:
 
 ## Current Next Action
 
-Implement Role (and related) APIs following existing Users/Auth patterns and `.cursor/rules` backend conventions.
+Add automated tests for the role, role-right, and rights APIs, or start the Vue login and API client. Restart the Visual Studio debug session and log in again before calling the new endpoints with an old token.

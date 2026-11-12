@@ -82,6 +82,16 @@ namespace DemoCrudBackend.Migrations
                         {
                             Id = 8,
                             Name = "Role_Delete"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Name = "RoleRight_Assign"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Name = "Right_View"
                         });
                 });
 
@@ -186,6 +196,16 @@ namespace DemoCrudBackend.Migrations
                         },
                         new
                         {
+                            RoleId = 1,
+                            RightId = 9
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 10
+                        },
+                        new
+                        {
                             RoleId = 2,
                             RightId = 1
                         },
@@ -203,6 +223,36 @@ namespace DemoCrudBackend.Migrations
                         {
                             RoleId = 2,
                             RightId = 4
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 5
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 6
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 7
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 8
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 9
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            RightId = 10
                         },
                         new
                         {
