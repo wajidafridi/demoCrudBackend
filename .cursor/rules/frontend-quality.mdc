@@ -1,0 +1,39 @@
+---
+description: ESLint, Prettier, error/loading states, and keep-buildable expectations
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# Code quality
+
+## Tooling
+
+- Follow the project ESLint + Prettier setup once scaffolded. Do not fight the formatter.
+- Remove dead code, unused imports, and unused dependencies in the same change when you touch a file.
+- Prefer explicit loading and error UI over silent failure or empty catch blocks.
+
+```ts
+// ❌
+try {
+  await userService.list()
+} catch {
+  // ignore
+}
+
+// ✅
+try {
+  loading.value = true
+  error.value = null
+  users.value = await userService.list()
+} catch (e) {
+  error.value = toUserMessage(e)
+} finally {
+  loading.value = false
+}
+```
+
+## Delivery bar
+
+- After each task, the frontend should still typecheck/build (once the Vite app exists).
+- Do not leave broken imports, `any`-ridden stubs, or half-wired routes “for later” unless the task explicitly scopes a stub.
+- Prefer handling the `ApiResponse` `message` / `errors` fields for user-visible feedback.

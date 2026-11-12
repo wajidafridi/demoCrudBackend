@@ -1,0 +1,16 @@
+---
+description: Tailwind CSS, layout, accessibility, and UI library policy
+globs: frontend/**/*.{vue,css,html}
+alwaysApply: false
+---
+
+# Styling and UI
+
+- Use **Tailwind CSS** for styling. Prefer utility classes in templates over bespoke CSS files.
+- Avoid inline `style=""` unless dynamic values cannot be expressed cleanly with Tailwind.
+- Keep spacing, typography, and colors consistent via Tailwind scale and a small set of shared patterns (page shell, form field, table, empty state).
+- Build responsive layouts (mobile-friendly forms and tables; stack on small screens).
+- Forms and controls: associate labels with inputs, keep focus visible, use semantic HTML (`button`, `nav`, headings).
+- Reuse shared components for repeated UI (inputs, buttons, alerts, pagination) instead of copy-pasting class stacks.
+- **Do not add a UI component library** (Vuetify, Element Plus, Naive UI, etc.) without explicit approval.
+- Do not chase decorative complexity; clarity beats visual noise in this learning app.

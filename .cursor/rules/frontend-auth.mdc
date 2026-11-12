@@ -1,0 +1,31 @@
+---
+description: Pinia auth state, router guards, permissions, and 401 handling
+globs: frontend/src/stores/**/*,frontend/src/router/**/*,frontend/src/services/auth*,frontend/src/composables/useAuth*
+alwaysApply: false
+---
+
+# Authentication and authorization
+
+## Auth state
+
+- Centralize session in a Pinia auth store: token, user identity, role, permission list, login/logout.
+- Persist only what is needed for reloads (typically the access token). Prefer a single agreed storage approach; do not scatter `localStorage` reads across the app.
+- Never store passwords, JWT signing keys, or other secrets in frontend source or env files committed to git.
+- Seeded backend SuperAdmin (`superadmin` / `Admin@123`) is for local testing only — never hardcode credentials in production builds.
+
+## Router
+
+- Protect private routes with navigation guards (`requiresAuth`, optional `permissions`).
+- Redirect unauthenticated users to login; send authenticated users away from the login page when appropriate.
+- Permission checks on routes and in the UI control **visibility and UX only**.
+
+## Permissions
+
+- Prefer permission names from the JWT/API (`User_View`, `Role_Edit`, …), not hardcoded business role names (`Admin`, `User`).
+- Hide or disable UI the user cannot use, but assume the backend still enforces policies.
+- Frontend checks are **not** security. Always expect 403/404 from the API.
+
+## Token expiry / 401
+
+- On 401 from the API client: clear auth state, stop further authenticated calls, and navigate to login (preserve return URL if useful).
+- Treat JWT permissions as a snapshot until expiry (~30 min on the backend). After role-right changes, the user must re-login for new claims.

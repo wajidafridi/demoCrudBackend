@@ -1,0 +1,45 @@
+---
+description: Feature-oriented Vue project layout and separation of concerns
+globs: frontend/src/**/*
+alwaysApply: false
+---
+
+# Frontend architecture
+
+## Suggested layout
+
+```text
+frontend/src/
+├── assets/
+├── components/          # shared UI (buttons, inputs, layout)
+├── composables/         # reusable Composition API logic
+├── features/            # optional feature folders (users, roles, auth)
+│   └── <feature>/
+│       ├── components/
+│       ├── views/       # or keep views under src/views
+│       └── *.ts
+├── router/
+├── services/            # Axios API modules (one concern per file)
+├── stores/              # Pinia stores
+├── types/               # shared TS types / API envelopes
+├── views/               # route-level pages
+├── App.vue
+└── main.ts
+```
+
+Use `features/` when a domain grows (auth, users, roles). Keep shared primitives in `components/` and `composables/`.
+
+## Boundaries
+
+- **Views**: route pages; compose components and call stores/services.
+- **Components**: presentational or small interactive UI; keep focused.
+- **Services**: all HTTP calls. Components/views do not call Axios directly.
+- **Stores**: shared client state (auth, session UI). Not a dumping ground for every API call.
+- **Composables**: reusable stateful logic without becoming a second framework.
+- **Types**: API DTOs and envelopes live in `types/`; import them — do not redefine inline.
+
+## Anti-patterns
+
+- Oversized SFCs that mix layout, API, and business rules.
+- Copy-pasted fetch/error/loading logic across components.
+- New patterns (repositories, CQRS-style clients, heavy DI) without a clear benefit.

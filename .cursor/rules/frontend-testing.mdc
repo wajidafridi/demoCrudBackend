@@ -1,0 +1,25 @@
+---
+description: When and what to test in the Vue frontend
+globs: frontend/**/*.{spec,test}.{ts,tsx},frontend/**/__tests__/**/*
+alwaysApply: false
+---
+
+# Testing
+
+## When to write tests
+
+- **Component tests**: non-trivial interactive UI (forms with validation, permission-gated controls, pagination controls).
+- **Integration / flow tests**: login, logout, auth guard redirects, and permission-based route access.
+- Skip trivial presentational snapshots that only assert markup class names.
+- Prefer Vitest + Vue Test Utils for unit/component tests unless the project later standardizes on something else.
+
+## What matters most
+
+- Auth store behavior (login success/failure, logout, token cleared on 401).
+- Router guards (anonymous vs authenticated; missing permission).
+- API client mapping of `ApiResponse` / `PagedApiResponse` and error paths.
+
+## Honesty
+
+- Do **not** claim tests passed unless they were executed in this environment.
+- If tests were not run, say so. Manual browser checks should be labeled as manual.

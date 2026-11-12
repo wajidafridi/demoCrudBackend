@@ -1,0 +1,36 @@
+---
+description: Vue 3 Composition API and TypeScript conventions
+globs: frontend/**/*.{vue,ts}
+alwaysApply: false
+---
+
+# Vue and TypeScript
+
+## Components
+
+- File names: **PascalCase** (`UserTable.vue`). Prefer multi-word names.
+- Props: type with `defineProps<Props>()` (or runtime + `PropType` only when needed).
+- Emits: type with `defineEmits<{ (e: 'save', id: number): void }>()`.
+- Prefer `ref` / `computed` / `reactive` intentionally — do not wrap everything in `reactive`.
+- Prefer `const` + narrow types; avoid `any` and unjustified `as` casts.
+
+```ts
+// ✅
+const props = defineProps<{ title: string; count?: number }>()
+const emit = defineEmits<{ (e: 'update', value: string): void }>()
+
+// ❌
+const props = defineProps<any>()
+```
+
+## Composables
+
+- Name with `use` prefix: `useAuth`, `usePagedList`.
+- Return a plain object of refs/functions; document non-obvious returns briefly.
+- Extract composables when the same reactive flow appears in 2+ places or a view becomes hard to read.
+
+## Types
+
+- Model backend payloads with dedicated interfaces (`LoginResponse`, `UserDto`, …).
+- Use the shared `ApiResponse<T>` / `PagedApiResponse<T>` types for every API call.
+- Prefer `unknown` + narrowing over `any` when parsing uncertain data.

@@ -1,0 +1,47 @@
+---
+description: Axios client, env base URL, and ApiResponse envelope handling
+globs: frontend/src/services/**/*,frontend/src/types/**/*
+alwaysApply: false
+---
+
+# API and backend integration
+
+## HTTP client
+
+- One shared Axios instance (e.g. `services/http.ts`).
+- `baseURL` from env (`import.meta.env.VITE_API_BASE_URL`). Never hardcode API hosts or paths in components.
+- Attach `Authorization: Bearer <token>` in a request interceptor when a token exists.
+- Handle 401 (and consistent envelope failures) in a response interceptor — clear session and route to login as decided in auth rules.
+- Surface network/server errors; do not swallow them silently.
+
+## Envelope
+
+Backend returns:
+
+```ts
+interface ApiResponse<T> {
+  success: boolean
+  message: string
+  data: T | null
+  pagination: null
+  errors: Record<string, string[]> | null
+}
+
+interface PagedApiResponse<T> {
+  success: boolean
+  message: string
+  data: T | null
+  pagination: PaginationMetadata
+  errors: Record<string, string[]> | null
+}
+```
+
+- Non-paged endpoints: `pagination` is always `null`.
+- Paged lists: read `pagination` (`pageNumber`, `pageSize`, `totalCount`, `totalPages`, `hasPreviousPage`, `hasNextPage`).
+- Check `success` and map `message` / `errors` for UI feedback. Do not assume `data` is present on failure.
+
+## Services
+
+- One service module per API area (`authService`, `userService`, `roleService`, …).
+- Views/components call services or stores that call services — never duplicate the same endpoint call in multiple SFCs.
+- Query params for lists: `pageNumber`, `pageSize` (backend defaults 1 / 20, max 100).

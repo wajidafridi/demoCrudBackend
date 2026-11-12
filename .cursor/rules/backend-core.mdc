@@ -11,7 +11,7 @@ alwaysApply: true
 - Keep MySQL. Do not change DB provider or invent schema migrations without need.
 - Prefer small, focused changes. Do not refactor unrelated files.
 - Learning project: prefer clear code over clever abstractions.
-- Frontend rules will be added later; do not invent FE conventions here.
+- Frontend conventions live in `frontend-*.mdc` in this folder; do not invent FE conventions here.
 
 ## Seed / local auth
 

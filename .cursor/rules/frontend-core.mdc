@@ -1,0 +1,21 @@
+---
+description: Vue 3 frontend core principles for the demo CRUD learning project
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# Frontend core
+
+- Stack: **Vue 3**, **Composition API**, **TypeScript (strict)**, Vite, Pinia, Vue Router, Axios, Tailwind CSS.
+- Always use `<script setup lang="ts">` for components.
+- Learning project: prefer clear, readable code over enterprise abstractions.
+- Avoid unnecessary libraries, wrappers, and indirection. Add a dependency only when it clearly earns its keep.
+- Prefer small, focused changes. Do not refactor unrelated files.
+- These rules apply to `frontend/` only. Do not invent or change backend conventions from frontend work.
+- When making a non-obvious architectural choice, leave a short comment or note why.
+
+## Working style
+
+- Explain important decisions briefly in PRs/chat when they affect structure (stores vs composables, token storage, route layout).
+- Keep the app understandable for a React/Next.js developer learning Vue — idiomatic Vue is fine; clever Vue is not.
+- Do not implement features that were not asked for in the current task.
