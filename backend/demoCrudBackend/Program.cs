@@ -26,6 +26,8 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi(options =>
 {
     options.AddSchemaTransformer<ApiResponseSchemaTransformer>();
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<BearerSecurityRequirementTransformer>();
 });
 
 builder.Services.AddScoped<IUserService, UserService>();
@@ -86,6 +88,27 @@ builder.Services
         };
     });
 
+const string VueFrontendCorsPolicy = "VueFrontend";
+var vueOrigin = builder.Configuration["Cors:AllowedOrigin"];
+
+if (!string.IsNullOrWhiteSpace(vueOrigin))
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(VueFrontendCorsPolicy, policy =>
+        {
+            policy.WithOrigins(vueOrigin)
+                .WithHeaders("Authorization", "Content-Type")
+                .WithMethods(
+                    HttpMethods.Get,
+                    HttpMethods.Post,
+                    HttpMethods.Put,
+                    HttpMethods.Delete,
+                    HttpMethods.Options);
+        });
+    });
+}
+
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddAuthorization(options =>
 {
@@ -106,11 +129,17 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference(options =>
-    options.AddPreferredSecuritySchemes("Bearer")
-    );
+    {
+        options.AddPreferredSecuritySchemes(BearerSecuritySchemeTransformer.SchemeId);
+    });
 }
 
 app.UseHttpsRedirection();
+
+if (!string.IsNullOrWhiteSpace(vueOrigin))
+{
+    app.UseCors(VueFrontendCorsPolicy);
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
