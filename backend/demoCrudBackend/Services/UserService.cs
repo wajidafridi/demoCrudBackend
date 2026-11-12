@@ -1,139 +1,426 @@
-﻿using DemoCrudBackend.Data;
+﻿using System.Linq.Expressions;
+using DemoCrudBackend.Authorization;
+using DemoCrudBackend.Common;
+using DemoCrudBackend.Data;
 using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using MySqlConnector;
 
 namespace DemoCrudBackend.Services
 {
-    public class UserService(ApplicationDbContext context, IPasswordHasher<User> passwordHasher) : IUserService
+    public class UserService(
+        ApplicationDbContext context,
+        IPasswordHasher<User> passwordHasher,
+        ILogger<UserService> logger) : IUserService
     {
-        public async Task<List<UserResponseDto>> GetAllUsersAsync()
-        {
+        private const int DefaultPageNumber = 1;
+        private const int DefaultPageSize = 20;
+        private const int MaxPageSize = 100;
 
-            return await context.Users
-                .Select(user => new UserResponseDto
-                {
-                    Id = user.Id,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                    UserName = user.UserName,
-                    RoleId = user.RoleId,
-                    Address = user.Address,
-                    PhoneNumber = user.PhoneNumber,
-                    Gender = user.Gender,
-                    DateOfBirth = user.DateOfBirth,
-                    ImageUrl = user.ImageUrl,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt
-                })
-                .ToListAsync();
+        private static readonly Expression<Func<User, UserResponseDto>> UserResponseProjection = user =>
+            new UserResponseDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                UserName = user.UserName,
+                RoleId = user.RoleId,
+                RoleName = user.Role.Name,
+                Address = user.Address,
+                PhoneNumber = user.PhoneNumber,
+                Gender = user.Gender,
+                DateOfBirth = user.DateOfBirth,
+                ImageUrl = user.ImageUrl,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt
+            };
+
+        public async Task<PagedResult<UserResponseDto>> GetUsersAsync(
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedPageNumber = pageNumber < 1 ? DefaultPageNumber : pageNumber;
+            var normalizedPageSize = pageSize < 1
+                ? DefaultPageSize
+                : Math.Min(pageSize, MaxPageSize);
+
+            var query = context.Users.AsNoTracking();
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderBy(user => user.Id)
+                .Skip((normalizedPageNumber - 1) * normalizedPageSize)
+                .Take(normalizedPageSize)
+                .Select(UserResponseProjection)
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<UserResponseDto>
+            {
+                Items = items,
+                Pagination = PaginationMetadata.Create(normalizedPageNumber, normalizedPageSize, totalCount)
+            };
         }
 
-        public async Task<UserResponseDto?> GetUserByIdAsync(int id)
+        public async Task<UserResponseDto?> GetUserByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             return await context.Users
-                .Where(x => x.Id == id)
-                .Select(user => new UserResponseDto
-                {
-                    Id = user.Id,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                    UserName = user.UserName,
-                    RoleId = user.RoleId,
-                    Address = user.Address,
-                    PhoneNumber = user.PhoneNumber,
-                    Gender = user.Gender,
-                    DateOfBirth = user.DateOfBirth,
-                    ImageUrl = user.ImageUrl,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt
-
-                })
-                .FirstOrDefaultAsync();
+                .AsNoTracking()
+                .Where(user => user.Id == id)
+                .Select(UserResponseProjection)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<UserResponseDto> AddUserAsync(CreateUserRequestDto user)
+        public async Task<UserWriteResult> AddUserAsync(
+            CreateUserRequestDto userRequest,
+            int? callerUserId,
+            CancellationToken cancellationToken = default)
         {
+            if (await ResolveCallerIdAsync(callerUserId, cancellationToken) is null)
+            {
+                logger.LogWarning(
+                    "Denied user creation because caller {CallerUserId} could not be resolved.",
+                    callerUserId);
+                return UserWriteResult.Forbidden("You are not allowed to perform this user operation.");
+            }
+
+            var userName = NormalizeUserName(userRequest.UserName);
+            if (userName is null)
+            {
+                return UserWriteResult.ValidationFailed("Username is required.");
+            }
+
+            var email = NormalizeEmail(userRequest.Email);
+            if (email is null)
+            {
+                return UserWriteResult.ValidationFailed("Email is required.");
+            }
+
+            var requestedRole = await GetRoleAsync(userRequest.RoleId, cancellationToken);
+            if (requestedRole is null)
+            {
+                return UserWriteResult.ValidationFailed("The requested role does not exist.");
+            }
+
+            if (requestedRole.IsSystem)
+            {
+                logger.LogWarning(
+                    "Denied user creation. Caller {CallerUserId} cannot assign the system role {RequestedRoleId}.",
+                    callerUserId,
+                    userRequest.RoleId);
+                return UserWriteResult.Forbidden("You are not allowed to assign the system role.");
+            }
+
+            var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: null, cancellationToken);
+            if (uniqueness is not null)
+            {
+                return uniqueness;
+            }
+
             var newUser = new User
             {
+                IsSystem = false,
+                UserName = userName,
+                Email = email,
+                RoleId = userRequest.RoleId,
+                Gender = userRequest.Gender,
+                Address = userRequest.Address,
+                LastName = userRequest.LastName,
+                ImageUrl = userRequest.ImageUrl,
+                FirstName = userRequest.FirstName,
+                DateOfBirth = userRequest.DateOfBirth,
+                PhoneNumber = userRequest.PhoneNumber,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            newUser.PasswordHash = passwordHasher.HashPassword(newUser, userRequest.Password);
+
+            context.Users.Add(newUser);
+
+            var saveResult = await SaveChangesHandlingConflictsAsync(cancellationToken);
+            if (saveResult is not null)
+            {
+                return saveResult;
+            }
+
+            return UserWriteResult.Success(ToUserResponseDto(newUser, requestedRole.Name));
+        }
+
+        public async Task<UserWriteResult> UpdateUserAsync(
+            int id,
+            UpdateUserRequestDto userRequest,
+            int? callerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var callerId = await ResolveCallerIdAsync(callerUserId, cancellationToken);
+            if (callerId is null)
+            {
+                logger.LogWarning(
+                    "Denied user update because caller {CallerUserId} could not be resolved.",
+                    callerUserId);
+                return UserWriteResult.Forbidden("You are not allowed to perform this user operation.");
+            }
+
+            var userName = NormalizeUserName(userRequest.UserName);
+            if (userName is null)
+            {
+                return UserWriteResult.ValidationFailed("Username is required.");
+            }
+
+            var email = NormalizeEmail(userRequest.Email);
+            if (email is null)
+            {
+                return UserWriteResult.ValidationFailed("Email is required.");
+            }
+
+            var existingUser = await context.Users
+                .FirstOrDefaultAsync(existing => existing.Id == id, cancellationToken);
+
+            if (existingUser is null)
+            {
+                return UserWriteResult.NotFound($"User with id = {id} was not found.");
+            }
+
+            var requestedRole = await GetRoleAsync(userRequest.RoleId, cancellationToken);
+            if (requestedRole is null)
+            {
+                return UserWriteResult.ValidationFailed("The requested role does not exist.");
+            }
+
+            if (existingUser.IsSystem)
+            {
+                if (callerId.Value != existingUser.Id)
+                {
+                    logger.LogWarning(
+                        "Denied update of system user {UserId} by caller {CallerUserId}.",
+                        id,
+                        callerId);
+                    return UserWriteResult.Forbidden("You are not allowed to modify the system user.");
+                }
+
+                if (RoleAssignment.IsRoleChange(existingUser.RoleId, userRequest.RoleId))
+                {
+                    logger.LogWarning(
+                        "Denied role change on system user {UserId} by caller {CallerUserId}.",
+                        id,
+                        callerId);
+                    return UserWriteResult.Forbidden("The system user role cannot be changed.");
+                }
+            }
+            else if (requestedRole.IsSystem)
+            {
+                logger.LogWarning(
+                    "Denied assignment of system role {RequestedRoleId} to user {UserId} by caller {CallerUserId}.",
+                    userRequest.RoleId,
+                    id,
+                    callerId);
+                return UserWriteResult.Forbidden("You are not allowed to assign the system role.");
+            }
+
+            var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: id, cancellationToken);
+            if (uniqueness is not null)
+            {
+                return uniqueness;
+            }
+
+            ApplyUpdate(existingUser, userRequest, userName, email);
+
+            var saveResult = await SaveChangesHandlingConflictsAsync(cancellationToken);
+            if (saveResult is not null)
+            {
+                return saveResult;
+            }
+
+            return UserWriteResult.Success();
+        }
+
+        public async Task<UserWriteResult> DeleteUserAsync(
+            int id,
+            int? callerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var callerId = await ResolveCallerIdAsync(callerUserId, cancellationToken);
+            if (callerId is null)
+            {
+                logger.LogWarning(
+                    "Denied user delete because caller {CallerUserId} could not be resolved.",
+                    callerUserId);
+                return UserWriteResult.Forbidden("You are not allowed to perform this user operation.");
+            }
+
+            var userToDelete = await context.Users
+                .FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
+
+            if (userToDelete is null)
+            {
+                return UserWriteResult.NotFound($"User with id = {id} was not found.");
+            }
+
+            if (userToDelete.IsSystem)
+            {
+                logger.LogWarning(
+                    "Denied delete of system user {UserId} by caller {CallerUserId}.",
+                    id,
+                    callerId);
+                return UserWriteResult.Forbidden("The system user cannot be deleted.");
+            }
+
+            if (RoleAssignment.IsSelfDeletion(callerId.Value, id))
+            {
+                logger.LogWarning("Denied self-delete of user {UserId}.", id);
+                return UserWriteResult.Forbidden("You cannot delete your own account.");
+            }
+
+            context.Users.Remove(userToDelete);
+            await context.SaveChangesAsync(cancellationToken);
+            return UserWriteResult.Success();
+        }
+
+        private async Task<int?> ResolveCallerIdAsync(int? callerUserId, CancellationToken cancellationToken)
+        {
+            if (callerUserId is null || callerUserId <= 0)
+            {
+                return null;
+            }
+
+            var exists = await context.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.Id == callerUserId.Value, cancellationToken);
+
+            return exists ? callerUserId : null;
+        }
+
+        private async Task<Role?> GetRoleAsync(int roleId, CancellationToken cancellationToken)
+        {
+            return await context.Roles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(role => role.Id == roleId, cancellationToken);
+        }
+
+        private async Task<UserWriteResult?> CheckUniquenessAsync(
+            string userName,
+            string email,
+            int? excludeUserId,
+            CancellationToken cancellationToken)
+        {
+            var userNameTaken = await context.Users
+                .AsNoTracking()
+                .AnyAsync(
+                    user => user.UserName == userName
+                        && (excludeUserId == null || user.Id != excludeUserId.Value),
+                    cancellationToken);
+
+            if (userNameTaken)
+            {
+                return UserWriteResult.Conflict("Username is already taken.");
+            }
+
+            var emailTaken = await context.Users
+                .AsNoTracking()
+                .AnyAsync(
+                    user => user.Email == email
+                        && (excludeUserId == null || user.Id != excludeUserId.Value),
+                    cancellationToken);
+
+            if (emailTaken)
+            {
+                return UserWriteResult.Conflict("Email is already in use.");
+            }
+
+            return null;
+        }
+
+        private async Task<UserWriteResult?> SaveChangesHandlingConflictsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+                return null;
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                logger.LogWarning(ex, "Unique constraint violation while saving a user.");
+                return UserWriteResult.Conflict("Username or email is already in use.");
+            }
+        }
+
+        private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+        {
+            for (var current = exception.InnerException; current is not null; current = current.InnerException)
+            {
+                if (current is MySqlException mysql
+                    && mysql.ErrorCode == MySqlErrorCode.DuplicateKeyEntry)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string? NormalizeUserName(string? userName)
+        {
+            if (string.IsNullOrWhiteSpace(userName))
+            {
+                return null;
+            }
+
+            return userName.Trim();
+        }
+
+        private static string? NormalizeEmail(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return null;
+            }
+
+            return email.Trim();
+        }
+
+        private static void ApplyUpdate(
+            User existingUser,
+            UpdateUserRequestDto userRequest,
+            string userName,
+            string email)
+        {
+            existingUser.Email = email;
+            existingUser.RoleId = userRequest.RoleId;
+            existingUser.Gender = userRequest.Gender;
+            existingUser.Address = userRequest.Address;
+            existingUser.LastName = userRequest.LastName;
+            existingUser.UserName = userName;
+            existingUser.ImageUrl = userRequest.ImageUrl;
+            existingUser.FirstName = userRequest.FirstName;
+            existingUser.UpdatedAt = DateTime.UtcNow;
+            existingUser.DateOfBirth = userRequest.DateOfBirth;
+            existingUser.PhoneNumber = userRequest.PhoneNumber;
+            // IsSystem is never copied from the request DTO.
+        }
+
+        private static UserResponseDto ToUserResponseDto(User user, string roleName)
+        {
+            return new UserResponseDto
+            {
+                Id = user.Id,
                 Email = user.Email,
+                RoleName = roleName,
                 RoleId = user.RoleId,
                 Gender = user.Gender,
                 Address = user.Address,
                 LastName = user.LastName,
-                UserName = user.UserName,
                 ImageUrl = user.ImageUrl,
+                UserName = user.UserName,
                 FirstName = user.FirstName,
-                CreatedAt = DateTime.UtcNow,
-                DateOfBirth = user.DateOfBirth,
                 PhoneNumber = user.PhoneNumber,
+                DateOfBirth = user.DateOfBirth,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt
             };
-
-            newUser.PasswordHash = passwordHasher.HashPassword(newUser, user.Password);
-
-            context.Users.Add(newUser);
-            await context.SaveChangesAsync();
-
-            return new UserResponseDto
-            {
-                Id = newUser.Id,
-                Email = newUser.Email,
-                RoleId = newUser.RoleId,
-                UserName = newUser.UserName,
-                LastName = newUser.LastName,
-                FirstName = newUser.FirstName,
-                Gender = newUser.Gender,
-                Address = newUser.Address,
-                ImageUrl = newUser.ImageUrl,
-                PhoneNumber = newUser.PhoneNumber,
-                DateOfBirth = newUser.DateOfBirth,
-                CreatedAt = newUser.CreatedAt,
-                UpdatedAt = newUser.UpdatedAt
-            };
-        }
-
-        public async Task<bool> UpdateUserAsync(int id, UpdateUserRequestDto user)
-        {
-            var existingUser = await context.Users.FindAsync(id);
-
-            if (existingUser is null)
-            {
-                return false;
-            }
-
-            existingUser.Email = user.Email;
-            existingUser.RoleId = user.RoleId;
-            existingUser.Gender = user.Gender;
-            existingUser.Address = user.Address;
-            existingUser.LastName = user.LastName;
-            existingUser.UserName = user.UserName;
-            existingUser.ImageUrl = user.ImageUrl;
-            existingUser.FirstName = user.FirstName;
-            existingUser.UpdatedAt = DateTime.UtcNow;
-            existingUser.DateOfBirth = user.DateOfBirth;
-            existingUser.PhoneNumber = user.PhoneNumber;
-
-            await context.SaveChangesAsync();
-
-            return true;
-        }
-
-        public async Task<bool> DeleteUserAsync(int id)
-        {
-            var userToDelete = await context.Users.FindAsync(id);
-
-            if(userToDelete is null)
-            {
-                return false;
-            }
-
-            context.Users.Remove(userToDelete);
-            await context.SaveChangesAsync();
-
-            return true;
         }
     }
 }

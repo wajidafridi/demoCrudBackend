@@ -1,24 +1,28 @@
-﻿using DemoCrudBackend.Dtos;
+﻿using DemoCrudBackend.Common;
+using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DemoCrudBackend.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController(IAuthService authService) : ControllerBase
+    public class AuthController(IAuthService authService) : ApiControllerBase
     {
+        [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto loginRequest)
+        public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login(
+            [FromBody] LoginRequestDto loginRequest,
+            CancellationToken cancellationToken)
         {
-            var response = await authService.LoginAsync(loginRequest);
+            var response = await authService.LoginAsync(loginRequest, cancellationToken);
 
             if (response is null)
             {
-                return Unauthorized("Invalid username or password.");
+                return ApiUnauthorized("Invalid username or password.");
             }
 
-            return Ok(response);
+            return ApiOk(response, "Login successful.");
         }
     }
 }

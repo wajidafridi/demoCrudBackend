@@ -4,6 +4,8 @@ namespace DemoCrudBackend.Services
 {
     public interface IAuthService
     {
-        Task<LoginResponseDto?>LoginAsync(LoginRequestDto loginRequest);
+        Task<LoginResponseDto?> LoginAsync(
+            LoginRequestDto loginRequest,
+            CancellationToken cancellationToken = default);
     }
 }

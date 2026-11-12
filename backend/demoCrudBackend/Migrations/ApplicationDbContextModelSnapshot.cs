@@ -32,9 +32,13 @@ namespace DemoCrudBackend.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Rights");
 
@@ -89,11 +93,18 @@ namespace DemoCrudBackend.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Roles");
 
@@ -101,16 +112,19 @@ namespace DemoCrudBackend.Migrations
                         new
                         {
                             Id = 1,
+                            IsSystem = true,
                             Name = "SuperAdmin"
                         },
                         new
                         {
                             Id = 2,
+                            IsSystem = false,
                             Name = "Admin"
                         },
                         new
                         {
                             Id = 3,
+                            IsSystem = false,
                             Name = "User"
                         });
                 });
@@ -216,7 +230,8 @@ namespace DemoCrudBackend.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -228,6 +243,9 @@ namespace DemoCrudBackend.Migrations
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("longtext");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -249,11 +267,18 @@ namespace DemoCrudBackend.Migrations
 
                     b.Property<string>("UserName")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
 
                     b.ToTable("Users");
 
@@ -262,11 +287,12 @@ namespace DemoCrudBackend.Migrations
                         {
                             Id = 1,
                             Address = "123 Admin St",
-                            CreatedAt = new DateTime(2026, 6, 23, 12, 42, 16, 708, DateTimeKind.Utc).AddTicks(8602),
+                            CreatedAt = new DateTime(2026, 11, 11, 18, 22, 8, 397, DateTimeKind.Utc).AddTicks(2212),
                             DateOfBirth = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "superadmin@email.com",
                             FirstName = "Super",
                             Gender = "Male",
+                            IsSystem = true,
                             LastName = "Admin",
                             PasswordHash = "AQAAAAIAAYagAAAAEL0tk8ql339knuAjCF3pcFH+AYsnV+XGu5j+lif0bILBs8ysx4JFlJ9BfXNMA4dFhQ==",
                             PhoneNumber = "123-456-7890",
@@ -299,7 +325,7 @@ namespace DemoCrudBackend.Migrations
                     b.HasOne("DemoCrudBackend.Models.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Role");

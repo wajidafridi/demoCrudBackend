@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using DemoCrudBackend.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,7 +12,11 @@ namespace DemoCrudBackend.Services
     {
         private const int MaximumAccessTokenMinutes = 1440;
 
-        public AccessTokenResult CreateAccessToken(int userId, string username, string roleName)
+        public AccessTokenResult CreateAccessToken(
+            int userId,
+            string username,
+            string roleName,
+            IReadOnlyCollection<string> permissions)
         {
             var issuer = configuration["Jwt:Issuer"];
             var audience = configuration["Jwt:Audience"];
@@ -34,6 +39,26 @@ namespace DemoCrudBackend.Services
                 throw new InvalidOperationException("A username and role name are required to create an access token.");
             }
 
+            if (permissions is null)
+            {
+                throw new InvalidOperationException("Permissions are required to create an access token.");
+            }
+
+            var grantedPermissions = new List<string>(permissions.Count);
+            var seenPermissions = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var permission in permissions)
+            {
+                if (string.IsNullOrWhiteSpace(permission))
+                {
+                    throw new InvalidOperationException("Permission claims cannot be blank.");
+                }
+
+                if (seenPermissions.Add(permission))
+                {
+                    grantedPermissions.Add(permission);
+                }
+            }
+
             var keyBytes = Encoding.UTF8.GetBytes(signingKey);
             if (keyBytes.Length < 32)
             {
@@ -49,6 +74,11 @@ namespace DemoCrudBackend.Services
                 new(ClaimTypes.Name, username),
                 new(ClaimTypes.Role, roleName)
             };
+
+            foreach (var permission in grantedPermissions)
+            {
+                claims.Add(new Claim(Permissions.ClaimType, permission));
+            }
 
             var expiresAtUtc = DateTime.UtcNow.AddMinutes(accessTokenMinutes);
             expiresAtUtc = expiresAtUtc.AddTicks(-(expiresAtUtc.Ticks % TimeSpan.TicksPerSecond));

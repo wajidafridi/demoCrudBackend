@@ -1,15 +1,31 @@
-﻿using DemoCrudBackend.Dtos;
-using DemoCrudBackend.Models;
+﻿using DemoCrudBackend.Common;
+using DemoCrudBackend.Dtos;
 
 namespace DemoCrudBackend.Services
 {
     public interface IUserService
     {
-        Task<List<UserResponseDto>> GetAllUsersAsync();
-        Task<UserResponseDto?> GetUserByIdAsync(int id);
-        Task<UserResponseDto> AddUserAsync(CreateUserRequestDto user);
-        Task<bool> UpdateUserAsync(int id, UpdateUserRequestDto user);
-        Task<bool> DeleteUserAsync(int id);
+        Task<PagedResult<UserResponseDto>> GetUsersAsync(
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default);
 
+        Task<UserResponseDto?> GetUserByIdAsync(int id, CancellationToken cancellationToken = default);
+
+        Task<UserWriteResult> AddUserAsync(
+            CreateUserRequestDto userRequest,
+            int? callerUserId,
+            CancellationToken cancellationToken = default);
+
+        Task<UserWriteResult> UpdateUserAsync(
+            int id,
+            UpdateUserRequestDto userRequest,
+            int? callerUserId,
+            CancellationToken cancellationToken = default);
+
+        Task<UserWriteResult> DeleteUserAsync(
+            int id,
+            int? callerUserId,
+            CancellationToken cancellationToken = default);
     }
 }

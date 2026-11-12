@@ -16,9 +16,11 @@ namespace DemoCrudBackend.Models
 
         [Required]
         [EmailAddress]
+        [StringLength(256)]
         public string Email { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(100)]
         public string UserName { get; set; } = string.Empty;
 
         public string PasswordHash { get; set; } = string.Empty;
@@ -26,6 +28,11 @@ namespace DemoCrudBackend.Models
         public int RoleId { get; set; }
 
         public Role Role { get; set; } = null!;
+
+        /// <summary>
+        /// Seeded system account flag. Never accept this from request DTOs.
+        /// </summary>
+        public bool IsSystem { get; set; }
 
         public string? Address { get; set; }
 
