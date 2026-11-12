@@ -10,13 +10,14 @@ alwaysApply: false
 
 - One shared Axios instance (e.g. `services/http.ts`).
 - `baseURL` from env (`import.meta.env.VITE_API_BASE_URL`). Never hardcode API hosts or paths in components.
-- Attach `Authorization: Bearer <token>` in a request interceptor when a token exists.
-- Handle 401 (and consistent envelope failures) in a response interceptor — clear session and route to login as decided in auth rules.
-- Surface network/server errors; do not swallow them silently.
+- Attach `Authorization: Bearer <token>` in a request interceptor when a token exists (read the token through the centralized auth/session access helpers — do not import Pinia or the router into the Axios module if that creates a cycle).
+- On **HTTP 401** only: call a small, clearly defined auth/session handler (for example `handleUnauthorizedSession()`). That handler owns clearing the session and navigating to login. The Axios module must not own auth state or router navigation itself.
+- Do **not** treat an envelope with `success: false` as a session expiry. Validation errors (400), forbidden (403), and not-found (404) stay as normal API failures for the caller to surface.
+- Surface network and server errors; do not swallow them silently.
 
 ## Envelope
 
-Backend returns:
+Backend returns two shapes. For paged lists, `T` is the **item** type and `data` is an array of those items (the C# API uses `PagedApiResponse<IReadOnlyList<TItem>>`; the TypeScript form below is the frontend convention).
 
 ```ts
 interface ApiResponse<T> {
@@ -27,14 +28,25 @@ interface ApiResponse<T> {
   errors: Record<string, string[]> | null
 }
 
+interface PaginationMetadata {
+  pageNumber: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+  hasPreviousPage: boolean
+  hasNextPage: boolean
+}
+
 interface PagedApiResponse<T> {
   success: boolean
   message: string
-  data: T | null
+  data: T[] | null
   pagination: PaginationMetadata
   errors: Record<string, string[]> | null
 }
 ```
+
+Example: `PagedApiResponse<UserDto>` → `data` is `UserDto[] | null`. Do **not** write `PagedApiResponse<UserDto[]>`.
 
 - Non-paged endpoints: `pagination` is always `null`.
 - Paged lists: read `pagination` (`pageNumber`, `pageSize`, `totalCount`, `totalPages`, `hasPreviousPage`, `hasNextPage`).

@@ -33,4 +33,5 @@ const props = defineProps<any>()
 
 - Model backend payloads with dedicated interfaces (`LoginResponse`, `UserDto`, …).
 - Use the shared `ApiResponse<T>` / `PagedApiResponse<T>` types for every API call.
+- For paged lists, `T` is the **item** type: `PagedApiResponse<UserDto>` means `data` is `UserDto[] | null`. Do not nest the array in the generic (`PagedApiResponse<UserDto[]>`).
 - Prefer `unknown` + narrowing over `any` when parsing uncertain data.
