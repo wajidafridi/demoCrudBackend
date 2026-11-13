@@ -6,6 +6,8 @@ import AccountView from '@/views/AccountView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
+import UserFormView from '@/views/UserFormView.vue'
+import UsersView from '@/views/UsersView.vue'
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -37,7 +39,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'users',
         name: 'users',
-        component: PlaceholderView,
+        component: UsersView,
         meta: {
           title: 'Users',
           requiresAuth: true,
@@ -47,7 +49,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'users/create',
         name: 'users-create',
-        component: PlaceholderView,
+        component: UserFormView,
         meta: {
           title: 'Create User',
           requiresAuth: true,
@@ -57,7 +59,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'users/:id/edit',
         name: 'users-edit',
-        component: PlaceholderView,
+        component: UserFormView,
         meta: {
           title: 'Edit User',
           requiresAuth: true,
