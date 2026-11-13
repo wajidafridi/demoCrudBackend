@@ -6,7 +6,8 @@ import AlertBanner from '@/components/AlertBanner.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PaginationControls from '@/components/PaginationControls.vue'
 import { toApiClientError } from '@/services/apiError'
-import { deleteRole, listRoles, ROLES_PAGE_SIZE } from '@/services/roleService'
+import { DEFAULT_PAGE_SIZE } from '@/constants/pagination'
+import { deleteRole, listRoles } from '@/services/roleService'
 import { useAuthStore } from '@/stores/authStore'
 import type { PaginationMetadata } from '@/types/api'
 import type { RoleResponse } from '@/types/role'
@@ -18,6 +19,7 @@ const router = useRouter()
 const roles = ref<RoleResponse[]>([])
 const pagination = ref<PaginationMetadata | null>(null)
 const pageNumber = ref(1)
+const pageSize = ref(DEFAULT_PAGE_SIZE)
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
@@ -50,7 +52,7 @@ async function loadRoles(): Promise<void> {
   try {
     let result = await listRoles({
       pageNumber: pageNumber.value,
-      pageSize: ROLES_PAGE_SIZE,
+      pageSize: pageSize.value,
     })
 
     if (
@@ -61,7 +63,7 @@ async function loadRoles(): Promise<void> {
       pageNumber.value = result.pagination.totalPages
       result = await listRoles({
         pageNumber: pageNumber.value,
-        pageSize: ROLES_PAGE_SIZE,
+        pageSize: pageSize.value,
       })
     }
 
@@ -104,6 +106,16 @@ async function onPageChange(nextPage: number): Promise<void> {
   }
 
   pageNumber.value = nextPage
+  await loadRoles()
+}
+
+async function onPageSizeChange(nextSize: number): Promise<void> {
+  if (loading.value || nextSize === pageSize.value) {
+    return
+  }
+
+  pageSize.value = nextSize
+  pageNumber.value = 1
   await loadRoles()
 }
 
@@ -232,9 +244,11 @@ async function confirmDelete(): Promise<void> {
       <PaginationControls
         v-if="pagination && pagination.totalCount > 0"
         :pagination="pagination"
+        :page-size="pageSize"
         :disabled="loading"
         item-label="roles"
         @change="onPageChange"
+        @update:page-size="onPageSizeChange"
       />
     </div>
 

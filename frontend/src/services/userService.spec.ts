@@ -42,7 +42,7 @@ const user: UserResponse = {
 
 const pagination = {
   pageNumber: 1,
-  pageSize: 20,
+  pageSize: 10,
   totalCount: 1,
   totalPages: 1,
   hasPreviousPage: false,
@@ -114,10 +114,10 @@ describe('userService', () => {
     }
     vi.mocked(http.get).mockResolvedValue(axiosResponse(envelope))
 
-    const result = await listUsers({ pageNumber: 2, pageSize: 20 })
+    const result = await listUsers({ pageNumber: 2, pageSize: 10 })
 
     expect(http.get).toHaveBeenCalledWith('/users', {
-      params: { pageNumber: 2, pageSize: 20 },
+      params: { pageNumber: 2, pageSize: 10 },
     })
     expect(result.users).toEqual([user])
     expect(result.pagination).toEqual(pagination)
@@ -134,7 +134,7 @@ describe('userService', () => {
     }
     vi.mocked(http.get).mockResolvedValue(axiosResponse(envelope))
 
-    await expect(listUsers({ pageNumber: 1, pageSize: 20 })).rejects.toMatchObject({
+    await expect(listUsers({ pageNumber: 1, pageSize: 10 })).rejects.toMatchObject({
       message: 'Could not load users.',
     })
   })
@@ -251,7 +251,7 @@ describe('userService', () => {
   it('reports a network failure when the server cannot be reached', async () => {
     vi.mocked(http.get).mockRejectedValue(new AxiosError('Network Error'))
 
-    await expect(listUsers({ pageNumber: 1, pageSize: 20 })).rejects.toMatchObject({
+    await expect(listUsers({ pageNumber: 1, pageSize: 10 })).rejects.toMatchObject({
       status: null,
       message: 'Could not reach the server. Check that the API is running.',
     })

@@ -14,8 +14,8 @@ namespace DemoCrudBackend.Controllers
         [Authorize(Policy = Permissions.RightView)]
         [HttpGet]
         public async Task<ActionResult<PagedApiResponse<IReadOnlyList<RightResponseDto>>>> GetRights(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
+            [FromQuery] int pageNumber = PageRequest.DefaultPageNumber,
+            [FromQuery] int pageSize = PageRequest.DefaultPageSize,
             CancellationToken cancellationToken = default)
         {
             var page = await service.GetRightsAsync(

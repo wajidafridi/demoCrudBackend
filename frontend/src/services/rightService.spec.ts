@@ -36,7 +36,7 @@ describe('rightService', () => {
       data: [right],
       pagination: {
         pageNumber: 1,
-        pageSize: 20,
+        pageSize: 10,
         totalCount: 1,
         totalPages: 1,
         hasPreviousPage: false,
@@ -46,10 +46,10 @@ describe('rightService', () => {
     }
     vi.mocked(http.get).mockResolvedValue(axiosResponse(envelope))
 
-    const result = await listRights({ pageNumber: 1, pageSize: 20 })
+    const result = await listRights({ pageNumber: 1, pageSize: 10 })
 
     expect(http.get).toHaveBeenCalledWith('/rights', {
-      params: { pageNumber: 1, pageSize: 20 },
+      params: { pageNumber: 1, pageSize: 10 },
     })
     expect(result.rights).toEqual([right])
   })
@@ -91,7 +91,7 @@ describe('rightService', () => {
       data: null,
       pagination: {
         pageNumber: 1,
-        pageSize: 20,
+        pageSize: 10,
         totalCount: 0,
         totalPages: 0,
         hasPreviousPage: false,
@@ -101,7 +101,7 @@ describe('rightService', () => {
     }
     vi.mocked(http.get).mockResolvedValue(axiosResponse(envelope))
 
-    await expect(listRights({ pageNumber: 1, pageSize: 20 })).rejects.toMatchObject({
+    await expect(listRights({ pageNumber: 1, pageSize: 10 })).rejects.toMatchObject({
       message: 'Could not load rights.',
     })
   })

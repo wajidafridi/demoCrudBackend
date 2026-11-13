@@ -133,7 +133,7 @@ Vue 3, TypeScript, Vite, Vue Router, Pinia, Axios, and Tailwind. Details and set
 | DELETE | `/api/roles/{id}/rights` | `RoleRight_Assign` | 200 |
 | GET | `/api/rights` | `Right_View` | 200 paged |
 
-Lists use `pageNumber` and `pageSize` (default 1 and 20, max 100). Write failures: 400 validation, 403 forbidden or system role, 404 missing or hidden system role on GET, 409 conflict.
+Lists use `pageNumber` and `pageSize` (default 1 and 10, max 100). Write failures: 400 validation, 403 forbidden or system role, 404 missing or hidden system role on GET, 409 conflict.
 
 ## 10. Development Rules
 

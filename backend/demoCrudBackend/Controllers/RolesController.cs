@@ -16,8 +16,8 @@ namespace DemoCrudBackend.Controllers
         [Authorize(Policy = Permissions.RoleView)]
         [HttpGet]
         public async Task<ActionResult<PagedApiResponse<IReadOnlyList<RoleResponseDto>>>> GetRoles(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
+            [FromQuery] int pageNumber = PageRequest.DefaultPageNumber,
+            [FromQuery] int pageSize = PageRequest.DefaultPageSize,
             CancellationToken cancellationToken = default)
         {
             var page = await service.GetRolesAsync(pageNumber, pageSize, cancellationToken);

@@ -1,10 +1,11 @@
+import { DEFAULT_PAGE_SIZE } from '@/constants/pagination'
 import { ApiClientError, toApiClientError } from '@/services/apiError'
 import { http } from '@/services/http'
 import type { ApiResponse, PagedApiResponse, PaginationMetadata } from '@/types/api'
 import type { CreateUserRequest, UpdateUserRequest, UserResponse } from '@/types/user'
 
 /** Matches backend `PageRequest.DefaultPageSize`. */
-export const USERS_PAGE_SIZE = 20
+export const USERS_PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export interface UserListQuery {
   pageNumber: number

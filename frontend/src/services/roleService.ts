@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/constants/pagination'
 import { ApiClientError, toApiClientError } from '@/services/apiError'
 import { http } from '@/services/http'
 import type { ApiResponse, PagedApiResponse, PaginationMetadata } from '@/types/api'
@@ -5,10 +6,7 @@ import type { RightResponse, RoleRightsRequest } from '@/types/right'
 import type { RoleRequest, RoleResponse } from '@/types/role'
 
 /** Matches backend `PageRequest.DefaultPageSize`. */
-export const ROLES_PAGE_SIZE = 20
-
-/** Backend `PageRequest.MaxPageSize`. Used when a screen needs every visible page. */
-const MAX_PAGE_SIZE = 100
+export const ROLES_PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export interface RoleListQuery {
   pageNumber: number

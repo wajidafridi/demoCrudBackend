@@ -7,7 +7,8 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PaginationControls from '@/components/PaginationControls.vue'
 import UserTable from '@/features/users/components/UserTable.vue'
 import { toApiClientError } from '@/services/apiError'
-import { deleteUser, listUsers, USERS_PAGE_SIZE } from '@/services/userService'
+import { DEFAULT_PAGE_SIZE } from '@/constants/pagination'
+import { deleteUser, listUsers } from '@/services/userService'
 import { useAuthStore } from '@/stores/authStore'
 import type { PaginationMetadata } from '@/types/api'
 import type { UserResponse } from '@/types/user'
@@ -19,6 +20,7 @@ const router = useRouter()
 const users = ref<UserResponse[]>([])
 const pagination = ref<PaginationMetadata | null>(null)
 const pageNumber = ref(1)
+const pageSize = ref(DEFAULT_PAGE_SIZE)
 const loading = ref(true)
 const errorMessage = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
@@ -51,7 +53,7 @@ async function loadUsers(): Promise<void> {
   try {
     let result = await listUsers({
       pageNumber: pageNumber.value,
-      pageSize: USERS_PAGE_SIZE,
+      pageSize: pageSize.value,
     })
 
     if (
@@ -62,7 +64,7 @@ async function loadUsers(): Promise<void> {
       pageNumber.value = result.pagination.totalPages
       result = await listUsers({
         pageNumber: pageNumber.value,
-        pageSize: USERS_PAGE_SIZE,
+        pageSize: pageSize.value,
       })
     }
 
@@ -105,6 +107,16 @@ async function onPageChange(nextPage: number): Promise<void> {
   }
 
   pageNumber.value = nextPage
+  await loadUsers()
+}
+
+async function onPageSizeChange(nextSize: number): Promise<void> {
+  if (loading.value || nextSize === pageSize.value) {
+    return
+  }
+
+  pageSize.value = nextSize
+  pageNumber.value = 1
   await loadUsers()
 }
 
@@ -190,8 +202,10 @@ async function confirmDelete(): Promise<void> {
       <PaginationControls
         v-if="pagination && pagination.totalCount > 0"
         :pagination="pagination"
+        :page-size="pageSize"
         :disabled="loading"
         @change="onPageChange"
+        @update:page-size="onPageSizeChange"
       />
     </div>
 

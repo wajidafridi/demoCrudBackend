@@ -463,7 +463,7 @@ A successful login looks like this (fields abbreviated):
 
 Non-paged endpoints use `ApiResponse<T>` (`pagination` is null). Paged lists use `PagedApiResponse<T>` with `pageNumber`, `pageSize`, `totalCount`, `totalPages`, `hasPreviousPage`, and `hasNextPage`.
 
-List endpoints accept `pageNumber` and `pageSize`. Defaults are 1 and 20. Values below 1 are replaced with those defaults. `pageSize` above 100 is capped at 100.
+List endpoints accept `pageNumber` and `pageSize`. Defaults are 1 and 10. Values below 1 are replaced with those defaults. `pageSize` above 100 is capped at 100.
 
 Failed validation returns 400 with `success: false`, message `Validation failed`, and field names in `errors`. A missing or invalid token returns 401. A token that lacks the policy's permission returns 403. Write operations can also return 400, 403, 404, or 409 from the service result.
 

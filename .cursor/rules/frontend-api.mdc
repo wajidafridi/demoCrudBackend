@@ -56,4 +56,4 @@ Example: `PagedApiResponse<UserDto>` → `data` is `UserDto[] | null`. Do **not*
 
 - One service module per API area (`authService`, `userService`, `roleService`, …).
 - Views/components call services or stores that call services — never duplicate the same endpoint call in multiple SFCs.
-- Query params for lists: `pageNumber`, `pageSize` (backend defaults 1 / 20, max 100).
+- Query params for lists: `pageNumber`, `pageSize` (backend defaults 1 / 10, max 100).

@@ -16,8 +16,8 @@ namespace DemoCrudBackend.Controllers
         [Authorize(Policy = Permissions.UserView)]
         [HttpGet]
         public async Task<ActionResult<PagedApiResponse<IReadOnlyList<UserResponseDto>>>> GetUsers(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
+            [FromQuery] int pageNumber = PageRequest.DefaultPageNumber,
+            [FromQuery] int pageSize = PageRequest.DefaultPageSize,
             CancellationToken cancellationToken = default)
         {
             var page = await service.GetUsersAsync(pageNumber, pageSize, cancellationToken);

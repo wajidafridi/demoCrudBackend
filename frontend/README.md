@@ -196,7 +196,7 @@ Responses use `src/types/api.ts`:
 - `ApiResponse<T>` for login, get-by-id, and writes
 - `PagedApiResponse<T>` for lists (`data` is the item array)
 
-List queries are `pageNumber` and `pageSize` (page size 20 on the lists, up to 100 when a form needs every visible role or right). `src/services/apiError.ts` maps the envelope `message` and `errors` onto form and page errors. HTTP 403, 404, and 409 stay on the page that made the call. They do not sign the user out.
+List queries are `pageNumber` and `pageSize` (default page size 10 on the lists, choosable as 5–100 under the table, up to 100 when a form needs every visible role or right). `src/services/apiError.ts` maps the envelope `message` and `errors` onto form and page errors. HTTP 403, 404, and 409 stay on the page that made the call. They do not sign the user out.
 
 ## Authentication integration
 

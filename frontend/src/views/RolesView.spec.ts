@@ -17,7 +17,7 @@ import RolesView from '@/views/RolesView.vue'
 vi.mock('@/services/roleService', () => ({
   listRoles: vi.fn(),
   deleteRole: vi.fn(),
-  ROLES_PAGE_SIZE: 20,
+  ROLES_PAGE_SIZE: 10,
 }))
 
 function makeToken(permissions: string[]): string {
@@ -47,7 +47,7 @@ function page(roles: RoleResponse[], pagination: Partial<PaginationMetadata> = {
     message: 'Roles fetched successfully.',
     pagination: {
       pageNumber: 1,
-      pageSize: 20,
+      pageSize: 10,
       totalCount: roles.length,
       totalPages: roles.length === 0 ? 0 : 1,
       hasPreviousPage: false,
@@ -114,7 +114,7 @@ describe('RolesView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Admin')
-    expect(listRoles).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 20 })
+    expect(listRoles).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 10 })
   })
 
   it('shows an error state and retries the request', async () => {
@@ -162,7 +162,30 @@ describe('RolesView', () => {
     await nextButton?.trigger('click')
     await flushPromises()
 
-    expect(listRoles).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 20 })
+    expect(listRoles).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 10 })
+  })
+
+  it('reloads from page 1 when the rows-per-page value changes', async () => {
+    vi.mocked(listRoles).mockImplementation(async (query) =>
+      page([admin], {
+        pageNumber: query.pageNumber,
+        pageSize: query.pageSize,
+        totalCount: 25,
+        totalPages: Math.ceil(25 / query.pageSize),
+        hasPreviousPage: query.pageNumber > 1,
+        hasNextPage: query.pageNumber < Math.ceil(25 / query.pageSize),
+      }),
+    )
+
+    const { wrapper } = await mountRoles()
+    await flushPromises()
+
+    const pageSizeSelect = wrapper.get('select[aria-label="Rows per page"]')
+    await pageSizeSelect.setValue('50')
+    await flushPromises()
+
+    expect(listRoles).toHaveBeenLastCalledWith({ pageNumber: 1, pageSize: 50 })
+    expect(pageSizeSelect.element).toMatchObject({ value: '50' })
   })
 
   it('shows a success notice after create and clears the query', async () => {

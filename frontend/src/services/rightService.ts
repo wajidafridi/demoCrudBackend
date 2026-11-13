@@ -1,10 +1,8 @@
+import { MAX_PAGE_SIZE } from '@/constants/pagination'
 import { ApiClientError, toApiClientError } from '@/services/apiError'
 import { http } from '@/services/http'
 import type { PagedApiResponse, PaginationMetadata } from '@/types/api'
 import type { RightResponse } from '@/types/right'
-
-/** Backend `PageRequest.MaxPageSize`. The catalog is paged, and assignment needs every visible right. */
-const MAX_PAGE_SIZE = 100
 
 export interface RightListQuery {
   pageNumber: number

@@ -17,7 +17,7 @@ import UsersView from '@/views/UsersView.vue'
 vi.mock('@/services/userService', () => ({
   listUsers: vi.fn(),
   deleteUser: vi.fn(),
-  USERS_PAGE_SIZE: 20,
+  USERS_PAGE_SIZE: 10,
 }))
 
 function makeToken(permissions: string[]): string {
@@ -64,7 +64,7 @@ function page(users: UserResponse[], pagination: Partial<PaginationMetadata> = {
     message: 'Users fetched successfully.',
     pagination: {
       pageNumber: 1,
-      pageSize: 20,
+      pageSize: 10,
       totalCount: users.length,
       totalPages: users.length === 0 ? 0 : 1,
       hasPreviousPage: false,
@@ -136,7 +136,7 @@ describe('UsersView', () => {
     expect(wrapper.text()).toContain('ada@example.com')
     expect(wrapper.text()).toContain('Admin')
     expect(wrapper.text()).toContain('555')
-    expect(listUsers).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 20 })
+    expect(listUsers).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 10 })
   })
 
   it('shows an error state and retries the request', async () => {
@@ -191,8 +191,36 @@ describe('UsersView', () => {
     await nextButton?.trigger('click')
     await flushPromises()
 
-    expect(listUsers).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 20 })
+    expect(listUsers).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 10 })
     expect(wrapper.text()).toContain('Page 2 of 3 · 45 users')
+  })
+
+  it('reloads from page 1 when the rows-per-page value changes', async () => {
+    vi.mocked(listUsers).mockImplementation(async (query) =>
+      page([ada], {
+        pageNumber: query.pageNumber,
+        pageSize: query.pageSize,
+        totalCount: 45,
+        totalPages: Math.ceil(45 / query.pageSize),
+        hasPreviousPage: query.pageNumber > 1,
+        hasNextPage: query.pageNumber < Math.ceil(45 / query.pageSize),
+      }),
+    )
+
+    const { wrapper } = await mountUsers()
+    await flushPromises()
+
+    const nextButton = wrapper.findAll('button').find((button) => button.text() === 'Next page')
+    await nextButton?.trigger('click')
+    await flushPromises()
+    expect(listUsers).toHaveBeenLastCalledWith({ pageNumber: 2, pageSize: 10 })
+
+    const pageSizeSelect = wrapper.get('select[aria-label="Rows per page"]')
+    await pageSizeSelect.setValue('25')
+    await flushPromises()
+
+    expect(listUsers).toHaveBeenLastCalledWith({ pageNumber: 1, pageSize: 25 })
+    expect(pageSizeSelect.element).toMatchObject({ value: '25' })
   })
 
   it('shows a success notice after create and clears the query', async () => {

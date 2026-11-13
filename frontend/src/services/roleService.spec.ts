@@ -34,7 +34,7 @@ const role: RoleResponse = { id: 2, name: 'Admin' }
 
 const pagination = {
   pageNumber: 1,
-  pageSize: 20,
+  pageSize: 10,
   totalCount: 1,
   totalPages: 1,
   hasPreviousPage: false,
@@ -79,10 +79,10 @@ describe('roleService', () => {
     }
     vi.mocked(http.get).mockResolvedValue(axiosResponse(envelope))
 
-    const result = await listRoles({ pageNumber: 1, pageSize: 20 })
+    const result = await listRoles({ pageNumber: 1, pageSize: 10 })
 
     expect(http.get).toHaveBeenCalledWith('/roles', {
-      params: { pageNumber: 1, pageSize: 20 },
+      params: { pageNumber: 1, pageSize: 10 },
     })
     expect(result.roles).toEqual([role])
     expect(result.pagination).toEqual(pagination)
