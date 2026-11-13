@@ -173,7 +173,7 @@ async function confirmDelete(): Promise<void> {
       <RouterLink
         v-if="canCreate"
         :to="{ name: 'roles-create' }"
-        class="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold whitespace-nowrap text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        class="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent-solid px-4 text-sm font-semibold whitespace-nowrap text-accent-foreground hover:bg-accent-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         Create role
       </RouterLink>
@@ -216,7 +216,11 @@ async function confirmDelete(): Promise<void> {
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr v-for="role in roles" :key="role.id" class="text-foreground">
+              <tr
+                v-for="role in roles"
+                :key="role.id"
+                class="text-foreground hover:bg-surface-secondary"
+              >
                 <td class="px-3 py-3.5 font-medium break-words">{{ role.name }}</td>
                 <td v-if="showActions" class="px-3 py-3.5">
                   <div class="flex flex-wrap gap-2">

@@ -134,14 +134,11 @@ async function onSubmit(payload: UserFormSubmission): Promise<void> {
       Back to users
     </button>
 
-    <p v-if="loading" class="text-sm text-slate-600" role="status">Loading user…</p>
+    <p v-if="loading" class="text-sm text-foreground-secondary" role="status">Loading user…</p>
 
     <AlertBanner v-else-if="loadError" variant="error" :message="loadError" />
 
-    <div
-      v-else-if="formValues"
-      class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
-    >
+    <div v-else-if="formValues" class="rounded-2xl border border-border bg-surface p-6 sm:p-8">
       <UserForm
         :mode="mode"
         :initial-values="formValues"

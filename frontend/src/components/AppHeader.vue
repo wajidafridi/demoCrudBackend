@@ -67,7 +67,7 @@ async function onLogout(): Promise<void> {
           class="flex items-center gap-3 rounded-xl border border-border bg-surface-secondary px-2.5 py-1.5"
         >
           <div
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-accent-solid text-xs font-semibold text-accent-foreground"
             aria-hidden="true"
           >
             {{ initials }}

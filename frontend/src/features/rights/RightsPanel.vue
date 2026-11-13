@@ -137,7 +137,7 @@ function onSearch(event: Event): void {
         :class="
           tone === 'danger'
             ? 'border border-border bg-surface text-danger hover:bg-surface-secondary'
-            : 'bg-accent text-accent-foreground hover:bg-accent-hover'
+            : 'bg-accent-solid text-accent-foreground hover:bg-accent-solid-hover'
         "
         :disabled="
           busy || loading || error != null || actionDisabled === true || selectedIds.length === 0

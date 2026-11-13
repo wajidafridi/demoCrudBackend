@@ -42,7 +42,7 @@ function onKeydown(event: KeyboardEvent): void {
       class="inline-flex h-8 w-8 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       :class="
         theme.resolvedTheme.value === 'light'
-          ? 'bg-accent text-accent-foreground'
+          ? 'bg-accent-solid text-accent-foreground'
           : 'text-foreground-secondary hover:text-foreground'
       "
       @click="choose('light')"
@@ -71,7 +71,7 @@ function onKeydown(event: KeyboardEvent): void {
       class="inline-flex h-8 w-8 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       :class="
         theme.resolvedTheme.value === 'dark'
-          ? 'bg-accent text-accent-foreground'
+          ? 'bg-accent-solid text-accent-foreground'
           : 'text-foreground-secondary hover:text-foreground'
       "
       @click="choose('dark')"

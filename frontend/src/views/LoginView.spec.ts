@@ -44,6 +44,9 @@ describe('LoginView', () => {
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
+    expect(wrapper.html()).toContain('bg-page')
+    expect(wrapper.html()).toContain('bg-accent-solid')
+    expect(wrapper.html()).not.toContain('bg-slate-')
     expect(wrapper.text()).toContain('Username is required.')
     expect(wrapper.text()).toContain('Password is required.')
     expect(loginMock).not.toHaveBeenCalled()

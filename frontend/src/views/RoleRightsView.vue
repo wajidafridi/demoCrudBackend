@@ -123,14 +123,16 @@ async function removeRight(right: RightResponse): Promise<void> {
       Back to roles
     </button>
 
-    <p v-if="loading" class="text-sm text-slate-600" role="status">Loading role rights…</p>
+    <p v-if="loading" class="text-sm text-foreground-secondary" role="status">
+      Loading role rights…
+    </p>
 
     <AlertBanner v-else-if="loadError" variant="error" :message="loadError" />
 
     <template v-else>
       <div class="space-y-1">
-        <h2 class="text-xl font-semibold tracking-tight text-slate-900">{{ roleName }}</h2>
-        <p class="text-sm text-slate-600">
+        <h2 class="text-xl font-semibold tracking-tight text-foreground">{{ roleName }}</h2>
+        <p class="text-sm text-foreground-secondary">
           Rights you can see for this role. The server only returns rights included in your own
           access.
         </p>
@@ -141,22 +143,24 @@ async function removeRight(right: RightResponse): Promise<void> {
       <AlertBanner v-if="catalogError" variant="error" :message="catalogError" />
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="text-sm font-semibold tracking-wide text-slate-500 uppercase">Assigned</h3>
-          <p v-if="sortedAssigned.length === 0" class="mt-3 text-sm text-slate-600">
+        <section class="rounded-2xl border border-border bg-surface p-5">
+          <h3 class="text-sm font-semibold tracking-wide text-foreground-muted uppercase">
+            Assigned
+          </h3>
+          <p v-if="sortedAssigned.length === 0" class="mt-3 text-sm text-foreground-secondary">
             This role has no rights you can see.
           </p>
-          <ul v-else class="mt-3 divide-y divide-slate-100">
+          <ul v-else class="mt-3 divide-y divide-border-subtle">
             <li
               v-for="right in sortedAssigned"
               :key="right.id"
               class="flex items-center justify-between gap-3 py-2"
             >
-              <span class="text-sm font-medium text-slate-900">{{ right.name }}</span>
+              <span class="text-sm font-medium text-foreground">{{ right.name }}</span>
               <button
                 v-if="canAssign"
                 type="button"
-                class="rounded-md px-2 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:opacity-60"
+                class="rounded-md px-2 py-1 text-sm font-semibold text-danger hover:bg-danger-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
                 :disabled="pendingRightId != null"
                 :aria-label="`Remove ${right.name}`"
                 @click="removeRight(right)"
@@ -167,21 +171,23 @@ async function removeRight(right: RightResponse): Promise<void> {
           </ul>
         </section>
 
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="text-sm font-semibold tracking-wide text-slate-500 uppercase">Available</h3>
-          <p v-if="catalogError" class="mt-3 text-sm text-slate-600">
+        <section class="rounded-2xl border border-border bg-surface p-5">
+          <h3 class="text-sm font-semibold tracking-wide text-foreground-muted uppercase">
+            Available
+          </h3>
+          <p v-if="catalogError" class="mt-3 text-sm text-foreground-secondary">
             Available rights could not be loaded.
           </p>
-          <p v-else-if="available.length === 0" class="mt-3 text-sm text-slate-600">
+          <p v-else-if="available.length === 0" class="mt-3 text-sm text-foreground-secondary">
             No further rights are available to assign.
           </p>
-          <ul v-else class="mt-3 divide-y divide-slate-100">
+          <ul v-else class="mt-3 divide-y divide-border-subtle">
             <li
               v-for="right in available"
               :key="right.id"
               class="flex items-center justify-between gap-3 py-2"
             >
-              <span class="text-sm font-medium text-slate-900">{{ right.name }}</span>
+              <span class="text-sm font-medium text-foreground">{{ right.name }}</span>
               <button
                 v-if="canAssign"
                 type="button"

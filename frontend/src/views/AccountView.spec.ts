@@ -309,7 +309,9 @@ describe('AccountView', () => {
 
     expect(wrapper.get('section').classes()).toContain('min-w-0')
     expect(wrapper.get('#profile-form').classes()).toContain('bg-surface')
-    expect(wrapper.get('#profile-form button[type="submit"]').classes()).toContain('bg-accent')
+    expect(wrapper.get('#profile-form button[type="submit"]').classes()).toContain(
+      'bg-accent-solid',
+    )
     const grid = wrapper.get('#profile-form .grid')
     expect(grid.classes()).toContain('grid-cols-1')
     expect(grid.classes()).toContain('sm:grid-cols-2')

@@ -169,7 +169,7 @@ async function onSubmit(): Promise<void> {
         </button>
         <button
           type="submit"
-          class="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex h-10 items-center justify-center rounded-lg bg-accent-solid px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="submitting"
           :aria-busy="submitting"
         >

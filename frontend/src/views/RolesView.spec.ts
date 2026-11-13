@@ -217,7 +217,7 @@ describe('RolesView', () => {
     expect(wrapper.get('section').classes()).toContain('min-w-0')
     expect(table.classes()).toContain('min-w-[480px]')
     expect(table.element.parentElement?.className).toContain('overflow-auto')
-    expect(wrapper.get('a[href="/roles/create"]').classes()).toContain('bg-accent')
+    expect(wrapper.get('a[href="/roles/create"]').classes()).toContain('bg-accent-solid')
   })
 
   it('hides create, edit, delete, and rights without those permissions', async () => {

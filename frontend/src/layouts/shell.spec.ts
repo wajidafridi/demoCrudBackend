@@ -122,7 +122,7 @@ describe('application shell', () => {
 
     const usersLink = wrapper.get('a[aria-label="Users"]')
     expect(usersLink.attributes('aria-current')).toBe('page')
-    expect(usersLink.classes().join(' ')).toContain('bg-accent')
+    expect(usersLink.classes().join(' ')).toContain('bg-accent-solid')
     expect(usersLink.classes().join(' ')).toContain('font-semibold')
 
     useAuthStore().clearSession()

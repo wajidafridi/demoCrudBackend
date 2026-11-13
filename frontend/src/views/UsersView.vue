@@ -191,7 +191,7 @@ async function confirmDelete(): Promise<void> {
       <RouterLink
         v-if="canCreate"
         :to="{ name: 'users-create' }"
-        class="inline-flex shrink-0 items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold whitespace-nowrap text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        class="inline-flex shrink-0 items-center justify-center rounded-lg bg-accent-solid px-4 py-2.5 text-sm font-semibold whitespace-nowrap text-accent-foreground hover:bg-accent-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         Create user
       </RouterLink>

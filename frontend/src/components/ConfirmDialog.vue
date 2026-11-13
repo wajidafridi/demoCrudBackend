@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-message"
-      class="w-full max-w-md rounded-2xl border border-border bg-surface p-6"
+      class="w-full max-w-md rounded-2xl border border-border bg-surface-elevated p-6 shadow-[var(--shadow-card)]"
     >
       <h2 id="confirm-dialog-title" class="text-lg font-semibold text-foreground">{{ title }}</h2>
       <p id="confirm-dialog-message" class="mt-2 text-sm text-foreground-secondary">
@@ -63,7 +63,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           type="button"
-          class="inline-flex h-10 items-center justify-center rounded-lg bg-danger-solid px-4 text-sm font-semibold text-white hover:bg-danger-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex h-10 items-center justify-center rounded-lg bg-danger-solid px-4 text-sm font-semibold text-danger-foreground hover:bg-danger-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="busy"
           @click="emit('confirm')"
         >

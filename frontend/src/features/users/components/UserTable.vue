@@ -67,7 +67,7 @@ function canManage(user: UserResponse): boolean {
         </tr>
       </thead>
       <tbody class="divide-y divide-border-subtle">
-        <tr v-for="user in users" :key="user.id" class="text-foreground">
+        <tr v-for="user in users" :key="user.id" class="text-foreground hover:bg-surface-secondary">
           <td class="px-3 py-3.5 font-medium break-words">{{ displayName(user) }}</td>
           <td class="px-3 py-3.5 whitespace-nowrap text-foreground-secondary">
             {{ user.userName }}

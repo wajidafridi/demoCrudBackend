@@ -240,7 +240,7 @@ async function onLogout(): Promise<void> {
           />
           <div
             v-else
-            class="flex h-16 w-16 items-center justify-center rounded-full bg-accent text-lg font-semibold text-accent-foreground"
+            class="flex h-16 w-16 items-center justify-center rounded-full bg-accent-solid text-lg font-semibold text-accent-foreground"
             aria-hidden="true"
           >
             {{ initials }}
@@ -379,7 +379,7 @@ async function onLogout(): Promise<void> {
           </button>
           <button
             type="submit"
-            class="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
+            class="inline-flex h-10 items-center justify-center rounded-lg bg-accent-solid px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="savingProfile"
             :aria-busy="savingProfile"
           >
@@ -482,7 +482,7 @@ async function onLogout(): Promise<void> {
         <div class="flex justify-end">
           <button
             type="submit"
-            class="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
+            class="inline-flex h-10 items-center justify-center rounded-lg bg-accent-solid px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="savingPassword"
             :aria-busy="savingPassword"
           >

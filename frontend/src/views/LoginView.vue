@@ -71,27 +71,27 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+  <div class="flex min-h-screen items-center justify-center bg-page px-4 py-12">
     <section
-      class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+      class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)] sm:p-8"
     >
       <div class="space-y-1">
-        <p class="text-sm font-medium text-slate-500">Demo CRUD</p>
-        <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Sign in</h1>
-        <p class="text-sm text-slate-600">Use your account credentials to continue.</p>
+        <p class="text-sm font-medium text-foreground-muted">Demo CRUD</p>
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">Sign in</h1>
+        <p class="text-sm text-foreground-secondary">Use your account credentials to continue.</p>
       </div>
 
       <form class="mt-8 space-y-5" novalidate @submit.prevent="onSubmit">
         <div
           v-if="formError"
-          class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          class="rounded-lg border border-danger bg-danger-subtle px-3 py-2 text-sm text-danger"
           role="alert"
         >
           {{ formError }}
         </div>
 
         <div class="space-y-1.5">
-          <label for="username" class="block text-sm font-medium text-slate-700">Username</label>
+          <label for="username" class="block text-sm font-medium text-foreground">Username</label>
           <input
             id="username"
             v-model="username"
@@ -99,17 +99,17 @@ async function onSubmit(): Promise<void> {
             name="username"
             autocomplete="username"
             :disabled="isSubmitting"
-            class="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+            class="block h-10 w-full rounded-lg border border-border bg-surface px-3 text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
             :aria-invalid="usernameError != null"
             :aria-describedby="usernameError ? 'username-error' : undefined"
           />
-          <p v-if="usernameError" id="username-error" class="text-sm text-red-600">
+          <p v-if="usernameError" id="username-error" class="text-sm text-danger">
             {{ usernameError }}
           </p>
         </div>
 
         <div class="space-y-1.5">
-          <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+          <label for="password" class="block text-sm font-medium text-foreground">Password</label>
           <div class="flex gap-2">
             <input
               id="password"
@@ -118,33 +118,34 @@ async function onSubmit(): Promise<void> {
               name="password"
               autocomplete="current-password"
               :disabled="isSubmitting"
-              class="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+              class="block h-10 w-full rounded-lg border border-border bg-surface px-3 text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
               :aria-invalid="passwordError != null"
               :aria-describedby="passwordError ? 'password-error' : undefined"
             />
             <button
               type="button"
-              class="shrink-0 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 disabled:opacity-60"
+              class="inline-flex h-10 shrink-0 items-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
               :disabled="isSubmitting"
               :aria-pressed="showPassword"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
               @click="showPassword = !showPassword"
             >
               {{ showPassword ? 'Hide' : 'Show' }}
             </button>
           </div>
-          <p v-if="passwordError" id="password-error" class="text-sm text-red-600">
+          <p v-if="passwordError" id="password-error" class="text-sm text-danger">
             {{ passwordError }}
           </p>
         </div>
 
         <button
           type="submit"
-          class="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 disabled:cursor-not-allowed disabled:bg-slate-400"
+          class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-accent-solid px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-solid-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="isSubmitting"
         >
           <span
             v-if="isSubmitting"
-            class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent"
+            class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-accent-foreground border-r-transparent"
             aria-hidden="true"
           />
           {{ isSubmitting ? 'Signing in…' : 'Sign in' }}

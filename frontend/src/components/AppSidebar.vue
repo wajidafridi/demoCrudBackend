@@ -75,7 +75,7 @@ function onNavigate(event: MouseEvent, navigate: (event?: MouseEvent) => void): 
   >
     <div class="flex h-16 items-center gap-3 border-b border-border px-4">
       <div
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-solid text-sm font-bold text-accent-foreground"
         aria-hidden="true"
       >
         DC
@@ -109,7 +109,7 @@ function onNavigate(event: MouseEvent, navigate: (event?: MouseEvent) => void): 
           class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           :class="
             isActive(item)
-              ? 'bg-accent font-semibold text-accent-foreground hover:bg-accent-hover'
+              ? 'bg-accent-solid font-semibold text-accent-foreground hover:bg-accent-solid-hover'
               : 'text-foreground-secondary hover:bg-surface-secondary hover:text-foreground'
           "
           @click="onNavigate($event, navigate)"
