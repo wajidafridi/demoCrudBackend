@@ -168,7 +168,7 @@ function onSubmit(): void {
         :maxlength="100"
         :disabled="submitting"
         :error="errorFor('password')"
-        hint="At least 6 characters."
+        hint="At least 8 characters."
       >
         <template #append>
           <button

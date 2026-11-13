@@ -36,16 +36,16 @@ function onPageSizeChange(event: Event): void {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <p class="text-sm text-slate-600">
+  <div class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-foreground-secondary">
       Page {{ pagination.pageNumber }} of {{ pagination.totalPages }} · {{ pagination.totalCount }}
       {{ itemLabel }}
     </p>
-    <div class="flex flex-wrap items-center gap-3">
-      <label class="flex items-center gap-2 text-sm text-slate-600">
+    <div class="flex min-w-0 flex-wrap items-center gap-3">
+      <label class="flex items-center gap-2 text-sm text-foreground-secondary">
         <span class="whitespace-nowrap">Rows per page</span>
         <select
-          class="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          class="rounded-lg border border-border bg-surface px-2.5 py-2 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50"
           :value="pageSize"
           :disabled="disabled"
           aria-label="Rows per page"
@@ -59,7 +59,7 @@ function onPageSizeChange(event: Event): void {
       <div class="flex gap-2">
         <button
           type="button"
-          class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          class="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="disabled || !pagination.hasPreviousPage"
           @click="emit('change', pagination.pageNumber - 1)"
         >
@@ -67,7 +67,7 @@ function onPageSizeChange(event: Event): void {
         </button>
         <button
           type="button"
-          class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          class="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="disabled || !pagination.hasNextPage"
           @click="emit('change', pagination.pageNumber + 1)"
         >

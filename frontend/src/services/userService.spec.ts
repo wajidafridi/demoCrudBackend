@@ -23,6 +23,7 @@ vi.mock('@/services/http', () => ({
 
 const user: UserResponse = {
   id: 2,
+  isSystem: false,
   firstName: 'Ada',
   lastName: 'Lovelace',
   fullName: 'Ada Lovelace',

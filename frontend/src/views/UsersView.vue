@@ -6,6 +6,7 @@ import AlertBanner from '@/components/AlertBanner.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PaginationControls from '@/components/PaginationControls.vue'
 import UserTable from '@/features/users/components/UserTable.vue'
+import { getAccount } from '@/services/accountService'
 import { toApiClientError } from '@/services/apiError'
 import { DEFAULT_PAGE_SIZE } from '@/constants/pagination'
 import { deleteUser, listUsers } from '@/services/userService'
@@ -26,6 +27,7 @@ const errorMessage = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
 const deleteTarget = ref<UserResponse | null>(null)
 const deleting = ref(false)
+const accountId = ref<number | null>(null)
 
 const canCreate = computed(() => authStore.hasPermission('User_Create'))
 const canEdit = computed(() => authStore.hasPermission('User_Edit'))
@@ -98,7 +100,7 @@ onMounted(async () => {
     await router.replace({ name: 'users' })
   }
 
-  await loadUsers()
+  await Promise.all([loadUsers(), loadAccount()])
 })
 
 async function onPageChange(nextPage: number): Promise<void> {
@@ -120,7 +122,25 @@ async function onPageSizeChange(nextSize: number): Promise<void> {
   await loadUsers()
 }
 
+function canManage(user: UserResponse): boolean {
+  return accountId.value != null && !user.isSystem && user.id !== accountId.value
+}
+
+async function loadAccount(): Promise<void> {
+  accountId.value = null
+  try {
+    const profile = await getAccount()
+    accountId.value = profile.id
+  } catch {
+    accountId.value = null
+  }
+}
+
 function askDelete(user: UserResponse): void {
+  if (!canDelete.value || !canManage(user)) {
+    return
+  }
+
   successMessage.value = null
   errorMessage.value = null
   deleteTarget.value = user
@@ -136,7 +156,8 @@ function cancelDelete(): void {
 
 async function confirmDelete(): Promise<void> {
   const user = deleteTarget.value
-  if (user == null || deleting.value) {
+  if (user == null || deleting.value || !canDelete.value || !canManage(user)) {
+    deleteTarget.value = null
     return
   }
 
@@ -158,15 +179,19 @@ async function confirmDelete(): Promise<void> {
 </script>
 
 <template>
-  <section class="flex min-h-0 flex-col gap-4">
-    <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-sm text-slate-600">
-        Browse accounts and manage the users your role allows you to change.
-      </p>
+  <section class="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-col gap-6">
+    <div class="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">Users</h1>
+        <p class="mt-2 max-w-2xl text-sm text-foreground-secondary">
+          Browse accounts and manage the users your role allows you to change. Your own account and
+          system accounts stay protected here.
+        </p>
+      </div>
       <RouterLink
         v-if="canCreate"
         :to="{ name: 'users-create' }"
-        class="inline-flex items-center justify-center rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+        class="inline-flex shrink-0 items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold whitespace-nowrap text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         Create user
       </RouterLink>
@@ -178,26 +203,33 @@ async function confirmDelete(): Promise<void> {
       <AlertBanner variant="error" :message="errorMessage" />
       <button
         type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+        class="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        aria-label="Try again"
         @click="loadUsers"
       >
         Try again
       </button>
     </div>
 
-    <p v-if="loading" class="text-sm text-slate-600" role="status">Loading users…</p>
+    <p v-if="loading" class="text-sm text-foreground-secondary" role="status">Loading users…</p>
 
     <div
       v-else-if="showEmpty"
-      class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm"
+      class="rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center"
     >
-      <h2 class="text-lg font-semibold text-slate-900">No users found</h2>
-      <p class="mt-1 text-sm text-slate-600">There are no users on this page.</p>
+      <h2 class="text-lg font-semibold text-foreground">No users found</h2>
+      <p class="mt-1 text-sm text-foreground-secondary">There are no users on this page.</p>
     </div>
 
-    <div v-else-if="users.length > 0" class="flex min-h-0 flex-col gap-4">
-      <div class="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <UserTable :users="users" :can-edit="canEdit" :can-delete="canDelete" @delete="askDelete" />
+    <div v-else-if="users.length > 0" class="flex min-h-0 min-w-0 flex-col gap-4">
+      <div class="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface">
+        <UserTable
+          :users="users"
+          :can-edit="canEdit"
+          :can-delete="canDelete"
+          :account-id="accountId"
+          @delete="askDelete"
+        />
       </div>
       <PaginationControls
         v-if="pagination && pagination.totalCount > 0"

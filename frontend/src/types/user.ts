@@ -5,6 +5,8 @@
  */
 export interface UserResponse {
   id: number
+  /** Copied from `User.IsSystem`. True for the seeded system account. */
+  isSystem: boolean
   firstName: string
   lastName: string
   fullName: string

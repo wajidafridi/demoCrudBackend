@@ -49,7 +49,7 @@ const FIELD_NAMES = new Set<string>([
 const LIMITS = {
   name: 100,
   email: 256,
-  passwordMin: 6,
+  passwordMin: 8,
   passwordMax: 100,
   address: 500,
   phone: 50,

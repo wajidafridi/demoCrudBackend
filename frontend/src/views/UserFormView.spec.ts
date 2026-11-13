@@ -25,6 +25,7 @@ const assignableRoles = [
 
 const ada: UserResponse = {
   id: 2,
+  isSystem: false,
   firstName: 'Ada',
   lastName: 'Lovelace',
   fullName: 'Ada Lovelace',
@@ -72,7 +73,7 @@ async function fillCreateForm(wrapper: ReturnType<typeof mount>): Promise<void> 
   await wrapper.get('#lastName').setValue('Lovelace')
   await wrapper.get('#email').setValue('ada@example.com')
   await wrapper.get('#userName').setValue('ada')
-  await wrapper.get('#password').setValue('secret1')
+  await wrapper.get('#password').setValue('secret12')
   await wrapper.get('#roleId').setValue('2')
 }
 
@@ -113,7 +114,7 @@ describe('UserFormView', () => {
       lastName: 'Lovelace',
       email: 'ada@example.com',
       userName: 'ada',
-      password: 'secret1',
+      password: 'secret12',
       roleId: 2,
       address: null,
       phoneNumber: null,

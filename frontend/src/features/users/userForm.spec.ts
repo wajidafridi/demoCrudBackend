@@ -20,7 +20,7 @@ function validValues(overrides: Partial<UserFormValues> = {}): UserFormValues {
     lastName: 'Lovelace',
     email: 'ada@example.com',
     userName: 'ada',
-    password: 'secret1',
+    password: 'secret12',
     roleId: '2',
     ...overrides,
   }
@@ -28,6 +28,7 @@ function validValues(overrides: Partial<UserFormValues> = {}): UserFormValues {
 
 const user: UserResponse = {
   id: 4,
+  isSystem: false,
   firstName: 'Ada',
   lastName: 'Lovelace',
   fullName: 'Ada Lovelace',
@@ -67,7 +68,7 @@ describe('validateUserForm', () => {
     const errors = validateUserForm(
       validValues({
         email: 'not-an-email',
-        password: '12345',
+        password: '1234567',
         roleId: '0',
         phoneNumber: 'x'.repeat(51),
         dateOfBirth: '2026-02-31',
@@ -76,10 +77,16 @@ describe('validateUserForm', () => {
     )
 
     expect(errors.email).toBe('Enter a valid email address.')
-    expect(errors.password).toBe('Password must be at least 6 characters.')
+    expect(errors.password).toBe('Password must be at least 8 characters.')
     expect(errors.roleId).toBe('Role is required.')
     expect(errors.phoneNumber).toBe('Phone number must be at most 50 characters.')
     expect(errors.dateOfBirth).toBe('Enter a valid date of birth.')
+  })
+
+  it('accepts a password at the 8 character minimum', () => {
+    expect(
+      validateUserForm(validValues({ password: '12345678' }), 'create').password,
+    ).toBeUndefined()
   })
 
   it('accepts a complete create form', () => {
@@ -102,7 +109,7 @@ describe('user form request mapping', () => {
       lastName: 'Lovelace',
       email: 'ada@example.com',
       userName: 'ada',
-      password: 'secret1',
+      password: 'secret12',
       roleId: 2,
       address: null,
       phoneNumber: null,

@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routes } from '@/router/routes'
+import { getAccount } from '@/services/accountService'
 import { ApiClientError } from '@/services/apiError'
 import { clearAccessToken, setAccessToken } from '@/services/tokenStorage'
 import { deleteUser, listUsers } from '@/services/userService'
@@ -13,6 +14,10 @@ import type { UserListResult } from '@/services/userService'
 import type { UserResponse } from '@/types/user'
 import { JwtClaimNames } from '@/utils/jwt'
 import UsersView from '@/views/UsersView.vue'
+
+vi.mock('@/services/accountService', () => ({
+  getAccount: vi.fn(),
+}))
 
 vi.mock('@/services/userService', () => ({
   listUsers: vi.fn(),
@@ -41,6 +46,7 @@ function installSession(permissions: string[]): void {
 
 const ada: UserResponse = {
   id: 2,
+  isSystem: false,
   firstName: 'Ada',
   lastName: 'Lovelace',
   fullName: 'Ada Lovelace',
@@ -109,8 +115,10 @@ describe('UsersView', () => {
     clearAccessToken()
     setActivePinia(createPinia())
     installSession(['User_View', 'User_Create', 'User_Edit', 'User_Delete'])
+    vi.mocked(getAccount).mockReset()
     vi.mocked(listUsers).mockReset()
     vi.mocked(deleteUser).mockReset()
+    vi.mocked(getAccount).mockResolvedValue({ id: 9 } as Awaited<ReturnType<typeof getAccount>>)
     vi.mocked(listUsers).mockResolvedValue(page([ada]))
   })
 
@@ -230,6 +238,65 @@ describe('UsersView', () => {
     expect(wrapper.text()).toContain('User created successfully.')
     expect(router.currentRoute.value.query.notice).toBeUndefined()
     expect(router.currentRoute.value.name).toBe('users')
+  })
+
+  it('hides edit and delete for the signed-in account', async () => {
+    vi.mocked(getAccount).mockResolvedValue({ id: ada.id } as Awaited<
+      ReturnType<typeof getAccount>
+    >)
+
+    const { wrapper } = await mountUsers()
+    await flushPromises()
+
+    expect(getAccount).toHaveBeenCalled()
+    expect(wrapper.find('[aria-label="Edit ada"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Delete ada"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('ada@example.com')
+  })
+
+  it('hides edit and delete for system accounts', async () => {
+    vi.mocked(listUsers).mockResolvedValue(page([{ ...ada, isSystem: true }]))
+
+    const { wrapper } = await mountUsers()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('System')
+    expect(wrapper.find('[aria-label="Edit ada"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Delete ada"]').exists()).toBe(false)
+  })
+
+  it('shows only the actions the current permissions allow', async () => {
+    installSession(['User_View', 'User_Edit'])
+
+    const { wrapper } = await mountUsers()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Edit ada"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Delete ada"]').exists()).toBe(false)
+    expect(wrapper.find('a[href="/users/create"]').exists()).toBe(false)
+  })
+
+  it('hides edit and delete when the account id is unavailable', async () => {
+    vi.mocked(getAccount).mockRejectedValue(
+      new ApiClientError('Could not load your account.', 500, null),
+    )
+
+    const { wrapper } = await mountUsers()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('ada@example.com')
+    expect(wrapper.find('[aria-label="Edit ada"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Delete ada"]').exists()).toBe(false)
+  })
+
+  it('keeps the user list inside a scroll container', async () => {
+    const { wrapper } = await mountUsers()
+    await flushPromises()
+
+    const table = wrapper.get('table')
+    expect(table.classes()).toContain('min-w-[720px]')
+    expect(table.element.parentElement?.className).toContain('overflow-auto')
+    expect(wrapper.get('section').classes()).toContain('min-w-0')
   })
 
   it('hides create, edit, and delete without those permissions', async () => {
