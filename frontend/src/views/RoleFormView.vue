@@ -106,23 +106,37 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <section class="mx-auto max-w-xl space-y-4">
-    <button
-      type="button"
-      class="text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-60"
-      :disabled="submitting"
-      @click="onCancel"
-    >
-      Back to roles
-    </button>
+  <section class="mx-auto w-full min-w-0 max-w-xl space-y-6">
+    <div class="space-y-3">
+      <button
+        type="button"
+        class="text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
+        :disabled="submitting"
+        @click="onCancel"
+      >
+        Back to roles
+      </button>
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+          {{ mode === 'create' ? 'Create role' : 'Edit role' }}
+        </h1>
+        <p class="mt-2 text-sm text-foreground-secondary">
+          {{
+            mode === 'create'
+              ? 'Name the role. Rights can be assigned after it exists.'
+              : 'Update the role name. Rights stay on the Rights page.'
+          }}
+        </p>
+      </div>
+    </div>
 
-    <p v-if="loading" class="text-sm text-slate-600" role="status">Loading role…</p>
+    <p v-if="loading" class="text-sm text-foreground-secondary" role="status">Loading role…</p>
 
     <AlertBanner v-else-if="loadError" variant="error" :message="loadError" />
 
     <form
       v-else
-      class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+      class="space-y-6 rounded-2xl border border-border bg-surface p-6 sm:p-8"
       novalidate
       @submit.prevent="onSubmit"
     >
@@ -147,7 +161,7 @@ async function onSubmit(): Promise<void> {
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button
           type="button"
-          class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-60"
+          class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="submitting"
           @click="onCancel"
         >
@@ -155,8 +169,9 @@ async function onSubmit(): Promise<void> {
         </button>
         <button
           type="submit"
-          class="inline-flex items-center justify-center rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:bg-violet-300"
+          class="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="submitting"
+          :aria-busy="submitting"
         >
           {{ submitting ? 'Saving…' : mode === 'create' ? 'Create role' : 'Save changes' }}
         </button>

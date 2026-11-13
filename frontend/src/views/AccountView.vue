@@ -35,7 +35,7 @@ async function onLogout(): Promise<void> {
           </h2>
           <p
             v-if="roleName"
-            class="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800"
+            class="inline-flex rounded-full bg-surface-secondary px-3 py-1 text-xs font-semibold text-accent"
           >
             {{ roleName }}
           </p>
@@ -76,7 +76,7 @@ async function onLogout(): Promise<void> {
 
       <button
         type="button"
-        class="mt-8 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+        class="mt-8 inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         @click="onLogout"
       >
         <NavIcons name="logout" />

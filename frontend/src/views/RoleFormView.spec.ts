@@ -117,6 +117,34 @@ describe('RoleFormView', () => {
     expect(router.currentRoute.value.query.notice).toBe('updated')
   })
 
+  it('ignores a second submit while create is in flight', async () => {
+    let resolveCreate: ((value: { id: number; name: string }) => void) | undefined
+    vi.mocked(createRole).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve
+        }),
+    )
+
+    const { wrapper } = await mountForm('/roles/create')
+    await wrapper.get('#roleName').setValue('Coordinator')
+
+    const submitPromise = wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    const saveButton = wrapper.get('button[type="submit"]')
+    expect(saveButton.text()).toContain('Saving…')
+    expect(saveButton.attributes('disabled')).toBeDefined()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(createRole).toHaveBeenCalledTimes(1)
+
+    resolveCreate?.({ id: 4, name: 'Coordinator' })
+    await submitPromise
+    await flushPromises()
+  })
+
   it('shows loading, not-found, and invalid-link states', async () => {
     let resolveRole: ((value: { id: number; name: string }) => void) | undefined
     vi.mocked(getRole).mockImplementation(

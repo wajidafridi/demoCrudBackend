@@ -11,8 +11,8 @@ defineProps<{
     class="rounded-lg border px-3 py-2 text-sm"
     :class="
       variant === 'error'
-        ? 'border-red-200 bg-red-50 text-red-700'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+        ? 'border-danger bg-danger-subtle text-danger'
+        : 'border-success bg-success-subtle text-success'
     "
   >
     {{ message }}

@@ -117,7 +117,7 @@ async function removeRight(right: RightResponse): Promise<void> {
   <section class="mx-auto max-w-4xl space-y-4">
     <button
       type="button"
-      class="text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+      class="text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       @click="onBack"
     >
       Back to roles
@@ -185,7 +185,7 @@ async function removeRight(right: RightResponse): Promise<void> {
               <button
                 v-if="canAssign"
                 type="button"
-                class="rounded-md px-2 py-1 text-sm font-semibold text-violet-700 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-60"
+                class="rounded-md px-2 py-1 text-sm font-semibold text-accent hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
                 :disabled="pendingRightId != null"
                 :aria-label="`Assign ${right.name}`"
                 @click="assignRight(right)"

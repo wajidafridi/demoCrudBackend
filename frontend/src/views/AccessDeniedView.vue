@@ -13,7 +13,7 @@ import { RouterLink } from 'vue-router'
     </p>
     <RouterLink
       :to="{ name: 'home' }"
-      class="mt-6 inline-flex rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+      class="mt-6 inline-flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
       Return to dashboard
     </RouterLink>

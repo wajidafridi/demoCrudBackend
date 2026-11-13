@@ -127,7 +127,7 @@ async function onSubmit(payload: UserFormSubmission): Promise<void> {
   <section class="mx-auto max-w-3xl space-y-4">
     <button
       type="button"
-      class="text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-60"
+      class="text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
       :disabled="submitting"
       @click="onCancel"
     >

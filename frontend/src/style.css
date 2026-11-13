@@ -1,9 +1,10 @@
 @import 'tailwindcss';
 
 /*
-  Semantic colors for later page redesigns. Existing screens keep their current
-  utilities; these tokens are the shared light/dark palette, not a restyle.
-  --focus is the focus ring color and stays visible on both page and surface.
+  Semantic light/dark palette. Components should use these tokens
+  instead of hardcoded accent colors.
+  Filled buttons use --accent with --accent-foreground.
+  --focus is the focus ring and stays visible on both page and surface.
 */
 
 :root,
@@ -16,13 +17,17 @@
   --text-muted: #475569;
   --border: #cbd5e1;
   --border-subtle: #e2e8f0;
-  --accent: #6d28d9;
-  --accent-hover: #5b21b6;
+  --accent: #1d4ed8;
+  --accent-hover: #1e40af;
   --accent-foreground: #ffffff;
-  --focus: #6d28d9;
+  --focus: #1d4ed8;
   --success: #047857;
+  --success-subtle: #ecfdf5;
   --warning: #92400e;
   --danger: #b91c1c;
+  --danger-subtle: #fef2f2;
+  --danger-solid: #b91c1c;
+  --danger-solid-hover: #991b1b;
   --overlay: rgb(15 23 42 / 50%);
 }
 
@@ -35,13 +40,17 @@
   --text-muted: #a3b0c0;
   --border: #475569;
   --border-subtle: #334155;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-foreground: #ffffff;
-  --focus: #c4b5fd;
+  --accent: #93c5fd;
+  --accent-hover: #bfdbfe;
+  --accent-foreground: #0f172a;
+  --focus: #bfdbfe;
   --success: #6ee7b7;
+  --success-subtle: #064e3b;
   --warning: #fcd34d;
   --danger: #fca5a5;
+  --danger-subtle: #7f1d1d;
+  --danger-solid: #dc2626;
+  --danger-solid-hover: #b91c1c;
   --overlay: rgb(0 0 0 / 65%);
 }
 
@@ -59,8 +68,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-focus: var(--focus);
   --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-hover: var(--danger-solid-hover);
   --color-overlay: var(--overlay);
 }
 

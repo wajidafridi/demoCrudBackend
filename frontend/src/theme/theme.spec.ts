@@ -380,3 +380,16 @@ describe('theme init script', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 })
+
+describe('theme tokens', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/style.css'), 'utf8')
+
+  it('uses a blue accent and keeps the old purple values out of the palette', () => {
+    expect(css).toContain('--accent: #1d4ed8;')
+    expect(css).toContain('--accent-hover: #1e40af;')
+    expect(css).toContain('--accent: #93c5fd;')
+    expect(css).toContain('--accent-foreground: #0f172a;')
+    expect(css).not.toMatch(/#(?:6d28d9|7c3aed|5b21b6|c4b5fd)/i)
+    expect(css).not.toContain('violet')
+  })
+})

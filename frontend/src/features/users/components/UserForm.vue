@@ -173,7 +173,7 @@ function onSubmit(): void {
         <template #append>
           <button
             type="button"
-            class="shrink-0 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-60"
+            class="inline-flex h-10 shrink-0 items-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60"
             :disabled="submitting"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
@@ -183,20 +183,20 @@ function onSubmit(): void {
         </template>
       </TextField>
       <div class="space-y-1.5">
-        <label for="roleId" class="block text-sm font-medium text-slate-700">
+        <label for="roleId" class="block text-sm font-medium text-foreground">
           Role
-          <span class="text-red-600">*</span>
+          <span class="text-danger">*</span>
         </label>
         <select
           id="roleId"
           v-model="values.roleId"
           name="roleId"
           required
-          class="block w-full rounded-md border px-3 py-2 text-slate-900 shadow-sm outline-none focus:ring-2 disabled:bg-slate-100"
+          class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           :class="
             errorFor('roleId') || rolesError
-              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-              : 'border-slate-300 focus:border-violet-500 focus:ring-violet-100'
+              ? 'border-danger focus-visible:outline-danger'
+              : 'border-border focus-visible:outline-focus'
           "
           :disabled="submitting || rolesLoading || roleLocked"
           :aria-invalid="errorFor('roleId') != null || rolesError != null"
@@ -215,13 +215,15 @@ function onSubmit(): void {
             {{ role.name }}
           </option>
         </select>
-        <p v-if="errorFor('roleId')" id="roleId-error" class="text-sm text-red-600">
+        <p v-if="errorFor('roleId')" id="roleId-error" class="text-sm text-danger">
           {{ errorFor('roleId') }}
         </p>
-        <p v-else-if="rolesError" id="roleId-load-error" class="text-sm text-red-600">
+        <p v-else-if="rolesError" id="roleId-load-error" class="text-sm text-danger">
           {{ rolesError }}
         </p>
-        <p v-else-if="roleHint" id="roleId-hint" class="text-sm text-slate-500">{{ roleHint }}</p>
+        <p v-else-if="roleHint" id="roleId-hint" class="text-sm text-foreground-muted">
+          {{ roleHint }}
+        </p>
       </div>
       <TextField
         id="phoneNumber"
@@ -279,7 +281,7 @@ function onSubmit(): void {
     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <button
         type="button"
-        class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-60"
+        class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="submitting"
         @click="emit('cancel')"
       >
@@ -287,7 +289,7 @@ function onSubmit(): void {
       </button>
       <button
         type="submit"
-        class="inline-flex items-center justify-center rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-not-allowed disabled:bg-violet-300"
+        class="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="submitting"
       >
         {{ submitting ? 'Saving…' : mode === 'create' ? 'Create user' : 'Save changes' }}

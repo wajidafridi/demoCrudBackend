@@ -196,6 +196,30 @@ describe('RolesView', () => {
     expect(router.currentRoute.value.query.notice).toBeUndefined()
   })
 
+  it('shows only the role actions the current permissions allow', async () => {
+    installSession(['Role_View', 'Role_Edit'])
+
+    const { wrapper } = await mountRoles()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Edit Admin"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Delete Admin"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Manage rights for Admin"]').exists()).toBe(false)
+    expect(wrapper.find('a[href="/roles/create"]').exists()).toBe(false)
+  })
+
+  it('keeps the role list inside a scroll container', async () => {
+    const { wrapper } = await mountRoles()
+    await flushPromises()
+
+    const table = wrapper.get('table')
+    expect(wrapper.get('h1').text()).toBe('Roles')
+    expect(wrapper.get('section').classes()).toContain('min-w-0')
+    expect(table.classes()).toContain('min-w-[480px]')
+    expect(table.element.parentElement?.className).toContain('overflow-auto')
+    expect(wrapper.get('a[href="/roles/create"]').classes()).toContain('bg-accent')
+  })
+
   it('hides create, edit, delete, and rights without those permissions', async () => {
     installSession(['Role_View'])
 

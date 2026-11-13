@@ -120,6 +120,10 @@ async function onPageSizeChange(nextSize: number): Promise<void> {
 }
 
 function askDelete(role: RoleResponse): void {
+  if (!canDelete.value) {
+    return
+  }
+
   successMessage.value = null
   errorMessage.value = null
   deleteTarget.value = role
@@ -135,7 +139,8 @@ function cancelDelete(): void {
 
 async function confirmDelete(): Promise<void> {
   const role = deleteTarget.value
-  if (role == null || deleting.value) {
+  if (role == null || deleting.value || !canDelete.value) {
+    deleteTarget.value = null
     return
   }
 
@@ -157,13 +162,18 @@ async function confirmDelete(): Promise<void> {
 </script>
 
 <template>
-  <section class="flex min-h-0 flex-col gap-4">
-    <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-sm text-slate-600">Browse roles and change the ones your permissions allow.</p>
+  <section class="mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-col gap-6">
+    <div class="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">Roles</h1>
+        <p class="mt-2 max-w-2xl text-sm text-foreground-secondary">
+          Browse the roles you can manage. System roles are omitted from this list.
+        </p>
+      </div>
       <RouterLink
         v-if="canCreate"
         :to="{ name: 'roles-create' }"
-        class="inline-flex items-center justify-center rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+        class="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold whitespace-nowrap text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         Create role
       </RouterLink>
@@ -175,44 +185,45 @@ async function confirmDelete(): Promise<void> {
       <AlertBanner variant="error" :message="errorMessage" />
       <button
         type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+        class="h-10 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        aria-label="Try again"
         @click="loadRoles"
       >
         Try again
       </button>
     </div>
 
-    <p v-if="loading" class="text-sm text-slate-600" role="status">Loading roles…</p>
+    <p v-if="loading" class="text-sm text-foreground-secondary" role="status">Loading roles…</p>
 
     <div
       v-else-if="showEmpty"
-      class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center shadow-sm"
+      class="rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center"
     >
-      <h2 class="text-lg font-semibold text-slate-900">No roles found</h2>
-      <p class="mt-1 text-sm text-slate-600">There are no roles on this page.</p>
+      <h2 class="text-lg font-semibold text-foreground">No roles found</h2>
+      <p class="mt-1 text-sm text-foreground-secondary">There are no roles on this page.</p>
     </div>
 
-    <div v-else-if="roles.length > 0" class="flex min-h-0 flex-col gap-4">
-      <div class="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div :class="TABLE_SCROLL_CLASS">
+    <div v-else-if="roles.length > 0" class="flex min-h-0 min-w-0 flex-col gap-4">
+      <div class="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface">
+        <div :class="[TABLE_SCROLL_CLASS, 'w-full max-w-full']">
           <table class="w-full min-w-[480px] text-left text-sm" aria-label="Roles">
             <thead
-              class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase"
+              class="sticky top-0 z-10 border-b border-border bg-surface-secondary text-xs tracking-wide text-foreground-muted uppercase"
             >
               <tr>
-                <th scope="col" class="px-4 py-3 font-semibold">Name</th>
-                <th v-if="showActions" scope="col" class="px-4 py-3 font-semibold">Actions</th>
+                <th scope="col" class="px-3 py-3 font-semibold">Name</th>
+                <th v-if="showActions" scope="col" class="px-3 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="role in roles" :key="role.id" class="text-slate-800">
-                <td class="px-4 py-3 font-medium text-slate-900">{{ role.name }}</td>
-                <td v-if="showActions" class="px-4 py-3">
+            <tbody class="divide-y divide-border-subtle">
+              <tr v-for="role in roles" :key="role.id" class="text-foreground">
+                <td class="px-3 py-3.5 font-medium break-words">{{ role.name }}</td>
+                <td v-if="showActions" class="px-3 py-3.5">
                   <div class="flex flex-wrap gap-2">
                     <RouterLink
                       v-if="canEdit"
                       :to="{ name: 'roles-edit', params: { id: role.id } }"
-                      class="rounded-md px-2 py-1 text-sm font-semibold text-violet-700 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+                      class="rounded-md border border-border px-2.5 py-1 text-sm font-semibold text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                       :aria-label="`Edit ${role.name}`"
                     >
                       Edit
@@ -220,7 +231,7 @@ async function confirmDelete(): Promise<void> {
                     <RouterLink
                       v-if="canAssignRights"
                       :to="{ name: 'roles-rights', params: { id: role.id } }"
-                      class="rounded-md px-2 py-1 text-sm font-semibold text-sky-700 hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
+                      class="rounded-md border border-border px-2.5 py-1 text-sm font-semibold text-foreground hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                       :aria-label="`Manage rights for ${role.name}`"
                     >
                       Rights
@@ -228,7 +239,7 @@ async function confirmDelete(): Promise<void> {
                     <button
                       v-if="canDelete"
                       type="button"
-                      class="rounded-md px-2 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                      class="rounded-md border border-border px-2.5 py-1 text-sm font-semibold text-danger hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                       :aria-label="`Delete ${role.name}`"
                       @click="askDelete(role)"
                     >

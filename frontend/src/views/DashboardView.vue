@@ -33,7 +33,7 @@ const canViewRoles = computed(() => authStore.hasPermission('Role_View'))
           </p>
         </div>
         <div
-          class="hidden h-28 w-40 items-end justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-violet-600 p-4 md:flex"
+          class="hidden h-28 w-40 items-end justify-center rounded-2xl bg-accent p-4 md:flex"
           aria-hidden="true"
         >
           <div class="h-16 w-24 rounded-lg border border-white/40 bg-white/20 shadow-lg" />
@@ -55,7 +55,7 @@ const canViewRoles = computed(() => authStore.hasPermission('Role_View'))
         <p class="mt-1 text-sm text-slate-600">Manage system users and their access.</p>
         <RouterLink
           :to="{ name: 'users' }"
-          class="mt-4 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+          class="mt-4 inline-flex text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Go to Users →
         </RouterLink>
@@ -66,7 +66,7 @@ const canViewRoles = computed(() => authStore.hasPermission('Role_View'))
         class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       >
         <div
-          class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-700"
+          class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface-secondary text-accent"
         >
           <NavIcons name="roles" />
         </div>
@@ -74,7 +74,7 @@ const canViewRoles = computed(() => authStore.hasPermission('Role_View'))
         <p class="mt-1 text-sm text-slate-600">Manage roles and the rights assigned to them.</p>
         <RouterLink
           :to="{ name: 'roles' }"
-          class="mt-4 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+          class="mt-4 inline-flex text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Go to Roles →
         </RouterLink>
