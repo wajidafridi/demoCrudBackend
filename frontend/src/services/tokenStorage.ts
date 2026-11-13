@@ -1,6 +1,9 @@
 const ACCESS_TOKEN_KEY = 'demoCrud.accessToken'
 
-/** Centralized access-token persistence (sessionStorage). Used by the auth store only. */
+/**
+ * Centralized access-token persistence (sessionStorage).
+ * Used by the auth store and the shared Axios request interceptor — not by components.
+ */
 export function getAccessToken(): string | null {
   return sessionStorage.getItem(ACCESS_TOKEN_KEY)
 }
