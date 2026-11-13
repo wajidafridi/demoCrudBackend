@@ -1,9 +1,11 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routes } from '@/router/routes'
+import { THEME_STORAGE_KEY } from '@/theme/theme'
+import { useTheme } from '@/theme/useTheme'
 import LoginView from '@/views/LoginView.vue'
 
 const loginMock = vi.fn()
@@ -35,7 +37,16 @@ async function mountLogin(redirect?: string) {
 describe('LoginView', () => {
   beforeEach(() => {
     loginMock.mockReset()
+    localStorage.clear()
     setActivePinia(createPinia())
+    useTheme().setPreference('system')
+  })
+
+  afterEach(() => {
+    useTheme().setPreference('system')
+    localStorage.removeItem(THEME_STORAGE_KEY)
+    document.documentElement.removeAttribute('data-theme')
+    document.documentElement.removeAttribute('data-theme-preference')
   })
 
   it('requires username and password before submitting', async () => {
@@ -49,6 +60,39 @@ describe('LoginView', () => {
     expect(wrapper.html()).not.toContain('bg-slate-')
     expect(wrapper.text()).toContain('Username is required.')
     expect(wrapper.text()).toContain('Password is required.')
+    expect(wrapper.get('#username').classes()).toContain('border-danger')
+    expect(wrapper.get('#password').classes()).toContain('border-danger')
+    expect(loginMock).not.toHaveBeenCalled()
+  })
+
+  it('places the shared theme toggle above the card and applies Light or Dark immediately', async () => {
+    const { wrapper } = await mountLogin()
+
+    const toggle = wrapper.get('[role="radiogroup"]')
+    expect(toggle.attributes('aria-label')).toBe('Theme')
+    expect(wrapper.text()).not.toContain('System')
+    expect(wrapper.get('div.justify-end').element.contains(toggle.element)).toBe(true)
+    expect(wrapper.get('section').classes()).toContain('max-w-md')
+    expect(wrapper.get('section').classes()).toContain('min-w-0')
+
+    await wrapper.get('[aria-label="Dark theme"]').trigger('click')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+    expect(wrapper.get('[aria-label="Dark theme"]').attributes('aria-checked')).toBe('true')
+
+    await wrapper.get('[aria-label="Light theme"]').trigger('click')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+  })
+
+  it('shows and hides the password without submitting it', async () => {
+    const { wrapper } = await mountLogin()
+
+    expect(wrapper.get('#password').attributes('type')).toBe('password')
+    await wrapper.get('[aria-label="Show password"]').trigger('click')
+    expect(wrapper.get('#password').attributes('type')).toBe('text')
+    await wrapper.get('[aria-label="Hide password"]').trigger('click')
+    expect(wrapper.get('#password').attributes('type')).toBe('password')
     expect(loginMock).not.toHaveBeenCalled()
   })
 
