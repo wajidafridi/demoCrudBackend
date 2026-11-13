@@ -13,10 +13,10 @@ An existing CRUD application being developed as a practical learning project for
 
 ```text
 project-root/
-├── .cursor/rules/          # Backend Cursor rules (FE rules later)
+├── .cursor/rules/          # Backend and frontend conventions
 ├── backend/
 │   └── demoCrudBackend/
-├── frontend/               # Vue planned
+├── frontend/               # Vue 3 app (login, users, roles, rights)
 └── docs/
     ├── LEARNING_PROGRESS.md
     ├── PROJECT_CONTEXT.md
@@ -99,14 +99,27 @@ project-root/
 - JWT permissions are a snapshot until expiry.
 - Unified response envelope for Vue and Scalar.
 
-## 7. Known Pending Work
+## 7. Frontend
+
+Vue 3, TypeScript, Vite, Vue Router, Pinia, Axios, and Tailwind. Details and setup are in the root `README.md` and `frontend/README.md`.
+
+- Login stores the access token in `sessionStorage` and restores it on refresh.
+- Axios attaches the bearer token and clears the session on HTTP 401. Expiry and 401 return to `/login`. Explicit logout does not restore the previous path.
+- Route meta permissions and button checks use the token's `permission` claims. The API remains authoritative.
+- Users and roles support paged lists, create, edit, and delete. The user form submits `roleId` from a dropdown of roles returned by `GET /api/roles`.
+- Role rights load `GET /api/roles/{id}/rights` and `GET /api/rights`, then assign or remove with `{ "rightIds": [...] }`.
+- The UI does not invent rights or a permission matrix. Names come from the API.
+- There is no rights create/update/delete screen, because the API has no write endpoints for rights.
+
+## 8. Known Pending Work
 
 - Automated backend tests
 - Global exception handling (optional hardening)
-- Vue frontend (login, token storage, guards, CRUD UI)
-- Frontend Cursor rules (later)
+- Frontend browser end-to-end tests (Vitest covers services, forms, lists, and guards)
+- Refresh tokens (not in the API)
+- `docs/PROJECT_HANDOVER_PROMPT.md` is an earlier mentor brief and is not the current setup guide
 
-## 8. Role and rights HTTP API
+## 9. Role and rights HTTP API
 
 | Method | Path | Permission | Success |
 |---|---|---|---|
@@ -122,7 +135,7 @@ project-root/
 
 Lists use `pageNumber` and `pageSize` (default 1 and 20, max 100). Write failures: 400 validation, 403 forbidden or system role, 404 missing or hidden system role on GET, 409 conflict.
 
-## 9. Development Rules
+## 10. Development Rules
 
 - Understand before implementing.
 - Keep changes small and focused.

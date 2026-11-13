@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useAuthStore } from '@/stores/authStore'
+import { consumeExplicitLogout, useAuthStore } from '@/stores/authStore'
 import { getAccessToken } from '@/services/tokenStorage'
 import { JwtClaimNames } from '@/utils/jwt'
 
@@ -30,6 +30,7 @@ describe('useAuthStore session expiry', () => {
   })
 
   afterEach(() => {
+    consumeExplicitLogout()
     vi.useRealTimers()
     sessionStorage.clear()
   })
@@ -105,5 +106,21 @@ describe('useAuthStore session expiry', () => {
 
     expect(store.isAuthenticated).toBe(false)
     expect(getAccessToken()).toBeNull()
+    expect(consumeExplicitLogout()).toBe(true)
+  })
+
+  it('does not treat token expiry as an explicit logout', () => {
+    const store = useAuthStore()
+    const token = makeToken(
+      validPayload({ [JwtClaimNames.exp]: Math.floor(Date.now() / 1000) + 5 }),
+    )
+
+    sessionStorage.setItem('demoCrud.accessToken', token)
+    store.restoreSession()
+
+    vi.advanceTimersByTime(5_000)
+
+    expect(store.isAuthenticated).toBe(false)
+    expect(consumeExplicitLogout()).toBe(false)
   })
 })

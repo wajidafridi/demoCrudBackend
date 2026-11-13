@@ -9,6 +9,19 @@ import { decodeAccessToken } from '@/utils/jwt'
 /** setTimeout delay cap (~24.8 days). */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
+/**
+ * Set only by an explicit logout. Session expiry and HTTP 401 call `clearSession`
+ * directly, so the app can tell a user logout from a session that ended underneath them.
+ */
+let explicitLogout = false
+
+/** Returns true once after `logout()`, then resets. */
+export function consumeExplicitLogout(): boolean {
+  const value = explicitLogout
+  explicitLogout = false
+  return value
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(null)
   const user = ref<AuthUser | null>(null)
@@ -119,6 +132,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout(): void {
+    if (isAuthenticated.value) {
+      explicitLogout = true
+    }
+
     clearSession()
   }
 

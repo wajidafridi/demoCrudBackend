@@ -60,15 +60,47 @@ Status: COMPLETED
 - Shared `WriteResult<T>`, `PageRequest`, `CallerLookup`, `CallerContext`, and `MySqlErrors`.
 - Manual HTTP checks passed (auth, hide/reject system role, conflicts, privilege filter, delete blocked while users are assigned). Re-login is required before old tokens see the new permissions.
 
+## Frontend Progress
+
+### Phase 6 — Authentication, HTTP client, and route guards
+Status: COMPLETED
+
+- Login and logout against `POST /api/auth/login`.
+- Access token in `sessionStorage`. Axios sends the bearer token and clears the session on HTTP 401.
+- Pinia auth store restores the session after refresh and clears it when the token expires.
+- Router guards for authentication and permission claims. Missing permissions open Access Denied.
+
+### Phase 7 — Users
+Status: COMPLETED
+
+- Paged user list, create, edit, and delete.
+- Client validation plus API validation, conflict, forbidden, and not-found messages.
+- Actions follow `User_View`, `User_Create`, `User_Edit`, and `User_Delete`.
+
+### Phase 8 — Roles and rights
+Status: COMPLETED
+
+- Paged role list, create, edit, and delete. The form sends `{ "name" }` only.
+- Role rights page loads assigned rights and the rights catalog from the API, then assigns or removes `{ "rightIds": [...] }`.
+- The user form selects a role by name and still submits `roleId`. The system role is not offered because the API hides it.
+- Actions follow `Role_View`, `Role_Create`, `Role_Edit`, `Role_Delete`, `RoleRight_Assign`, and `Right_View`.
+
+### Phase 9 — Integration, quality, and documentation
+Status: COMPLETED
+
+- Session expiry and HTTP 401 return to the sign-in page. Explicit logout does not restore the previous path.
+- Docs updated to the implemented API and Vue app.
+- `npm test`, lint, format check, and production build are the frontend checks.
+
 ## Current Phase
 
-### Phase 6 — Backend tests, then Vue
-Status: NEXT
+No further feature phase is in progress.
 
-Planned:
+Still open, and not part of the Vue work above:
+
 - Automated backend tests for auth, users, roles, and role rights.
 - Optional global exception handling.
-- Then Vue frontend (login, token storage, guards, CRUD UI).
+- Browser end-to-end tests. Frontend coverage today is Vitest.
 
 ## Important Decisions
 
@@ -82,4 +114,4 @@ Planned:
 
 ## Current Next Action
 
-Add automated tests for the role, role-right, and rights APIs, or start the Vue login and API client. Restart the Visual Studio debug session and log in again before calling the new endpoints with an old token.
+The Vue learning UI is in place. The next backend improvement is automated tests for auth, users, roles, and role rights. Log in again after a role's rights change; existing tokens keep the permission claims they were issued with.

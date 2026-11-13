@@ -1,36 +1,40 @@
 # Demo CRUD frontend
 
-Vue application for the [Demo CRUD](../README.md) API. The dev server, layout, router, and a shared HTTP client are in place. Login and the user, role, and rights screens are not built yet.
+Vue application for the [Demo CRUD](../README.md) API. Sign-in, the application shell, users, roles, and role-right assignment are implemented against the existing API.
 
-Backend setup, the database, JWT, and the API list are in the [repository README](../README.md). This file covers only the frontend.
+Backend setup, the database, JWT, and the API list are in the [repository README](../README.md). This file covers the frontend.
 
 ## Frontend overview
 
-The app title is **Demo CRUD**. `npm run dev` serves a single home page that states the foundation is ready. Nothing in the UI calls the API.
+The app title is **Demo CRUD**. `npm run dev` serves the sign-in page and, after login, the dashboard.
 
-| Implemented                                               | Pending                                          |
-| --------------------------------------------------------- | ------------------------------------------------ |
-| Vite + Vue 3 + TypeScript project                         | Login and logout screens                         |
-| `AppLayout` with a Home link                              | Access-token storage                             |
-| Route `/` → `HomeView`                                    | Navigation guards                                |
-| Pinia auth store, JWT decode, sessionStorage token helper | Login UI, Axios interceptors, navigation guards  |
-| Axios instance in `src/services/http.ts`                  | Auth header, 401 handling, feature CRUD services |
-| `ApiResponse` / `PagedApiResponse` / auth types           | User, role, and rights screens                   |
-| Tailwind CSS, ESLint, Prettier, Vitest                    | Full E2E coverage                                |
+| Area    | What it does                                                                                                                           |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Login   | `POST /api/auth/login`. Invalid credentials stay on the form. The password field is cleared after a successful login.                  |
+| Session | Access token in `sessionStorage` under `demoCrud.accessToken`. Restored when the tab reloads. Cleared on logout, expiry, and HTTP 401. |
+| HTTP    | Shared Axios client attaches `Authorization: Bearer` and clears the session on 401.                                                    |
+| Routes  | Auth and permission guards. A missing permission opens Access Denied.                                                                  |
+| Users   | Paged list, create, edit, delete. The role field is a dropdown of roles the API returns.                                               |
+| Roles   | Paged list, create, edit, delete.                                                                                                      |
+| Rights  | Assigned and available rights for one role. Assign and remove call the role-rights endpoints.                                          |
+| Account | Username, role, and email from the current session, plus logout.                                                                       |
+
+Permission checks in the UI are a guide. The API still enforces every policy.
 
 ## Technology stack
 
 Declared in `package.json` and wired in source:
 
-| Piece               | Used for                                                |
-| ------------------- | ------------------------------------------------------- |
-| Vue 3               | UI. Components use `<script setup lang="ts">`.          |
-| TypeScript (strict) | `tsconfig.app.json`                                     |
-| Vite 8              | Dev server and production build (`vite.config.ts`)      |
-| Vue Router          | `src/router/index.ts`                                   |
-| Pinia               | `createPinia()` in `src/main.ts`. No store modules yet. |
-| Axios               | Shared client in `src/services/http.ts`                 |
-| Tailwind CSS 4      | `@tailwindcss/vite`. Global import in `src/style.css`.  |
+| Piece               | Used for                                               |
+| ------------------- | ------------------------------------------------------ |
+| Vue 3               | UI. Components use `<script setup lang="ts">`.         |
+| TypeScript (strict) | `tsconfig.app.json`                                    |
+| Vite 8              | Dev server and production build (`vite.config.ts`)     |
+| Vue Router          | `src/router/index.ts`                                  |
+| Pinia               | Auth store in `src/stores/authStore.ts`                |
+| Axios               | Shared client in `src/services/http.ts`                |
+| Tailwind CSS 4      | `@tailwindcss/vite`. Global import in `src/style.css`. |
+| Vitest              | `npm test`, with Vue Test Utils and happy-dom          |
 
 npm is the package manager (`package-lock.json`).
 
@@ -38,7 +42,7 @@ npm is the package manager (`package-lock.json`).
 
 - Node.js `^20.19.0` or `>=22.12.0` (the `engines` range of Vite 8).
 - npm.
-- The API from the repository root, if you are about to call it. The home page does not need the API running. See [Getting started](../README.md#getting-started) in the root README.
+- The API from the repository root. See [Getting started](../README.md#getting-started).
 
 ## Installation
 
@@ -48,7 +52,7 @@ From the `frontend` directory:
 npm install
 ```
 
-From the repository root, the same install is:
+From the repository root:
 
 ```bash
 npm install --prefix frontend
@@ -59,7 +63,7 @@ npm install --prefix frontend
 Vite reads `frontend/.env`. That file is gitignored. The tracked template is `.env.example`:
 
 ```text
-VITE_API_BASE_URL=http://localhost:5118/api
+VITE_API_BASE_URL=https://localhost:7193/api
 ```
 
 Create the local file.
@@ -76,11 +80,13 @@ Bash:
 cp .env.example .env
 ```
 
-`VITE_API_BASE_URL` is the only variable declared in `src/env.d.ts`. It must include the `/api` prefix. The value above matches the backend `http` launch profile (`http://localhost:5118`).
+`VITE_API_BASE_URL` is required and must include the `/api` prefix. The value above matches the backend `https` launch profile (`https://localhost:7193`). If you run `--launch-profile http` instead, set it to `http://localhost:5118/api`.
 
-Restart `npm run dev` after you change `.env`. Do not put passwords, JWT signing keys, or access tokens in env files.
+`VITE_DEV_LOGIN_USERNAME` and `VITE_DEV_LOGIN_PASSWORD` are optional. They prefill the sign-in form only when Vite's mode is `development`. They are not used by `npm test` or `npm run build`. Do not put passwords, JWT signing keys, or access tokens in a file you commit.
 
-The backend allows browser calls from `http://localhost:5173` when it runs in Development (`Cors:AllowedOrigin` in `backend/demoCrudBackend/appsettings.Development.json`). If the dev server binds a different port, update that setting and restart the API. Details are in the root README section on [backend configuration](../README.md#backend-configuration).
+Restart `npm run dev` after you change `.env`.
+
+The backend allows browser calls from `http://localhost:5173` when it runs in Development (`Cors:AllowedOrigin` in `backend/demoCrudBackend/appsettings.Development.json`). If the dev server binds a different port, update that setting and restart the API.
 
 ## Development server
 
@@ -90,7 +96,9 @@ From `frontend`:
 npm run dev
 ```
 
-`vite.config.ts` does not set `server.port`, so Vite uses `http://localhost:5173`. Open that URL. You should see the Demo CRUD header and the home page.
+Open `http://localhost:5173`. Signed-out visitors are sent to `/login`.
+
+The seeded username is `superadmin`. The password is the development seed on that user in `backend/demoCrudBackend/Data/ApplicationDbContext.cs`. It is not written in this file.
 
 ## Production build
 
@@ -98,7 +106,7 @@ npm run dev
 npm run build
 ```
 
-This runs `vue-tsc -b` and then `vite build`. Output goes to `frontend/dist/`, which is gitignored.
+This runs `vue-tsc -b` and then `vite build`. Output goes to `frontend/dist/`, which is gitignored. The built client uses the `VITE_API_BASE_URL` that was present at build time.
 
 Preview the built files locally:
 
@@ -106,7 +114,7 @@ Preview the built files locally:
 npm run preview
 ```
 
-Vite's default preview port is 4173 when the config does not override it: `http://localhost:4173`. The current UI does not call the API. Any later client code would use the `VITE_API_BASE_URL` value that was present when `npm run build` ran.
+Vite's default preview port is 4173 when the config does not override it: `http://localhost:4173`.
 
 ## Folder structure
 
@@ -115,28 +123,23 @@ frontend/
 ├── index.html
 ├── package.json
 ├── package-lock.json
-├── vite.config.ts          # Vue, Tailwind, @ → src
-├── tsconfig.json
-├── tsconfig.app.json
-├── tsconfig.node.json
+├── vite.config.ts
 ├── .env.example
 └── src/
-    ├── assets/             # empty
-    ├── components/         # empty; shared UI goes here
+    ├── components/       # Shared fields, dialog, alerts, sidebar, header
+    ├── features/         # Users and roles form helpers and feature components
     ├── layouts/
-    │   └── AppLayout.vue   # page shell and Home link
-    ├── router/
-    │   └── index.ts        # history mode, one route
-    ├── services/
-    │   └── http.ts         # shared Axios client
-    ├── stores/             # empty; Pinia modules go here
+    │   └── AppLayout.vue
+    ├── navigation/
+    ├── router/           # Routes and the auth guard
+    ├── services/         # Axios client, auth, users, roles, rights
+    ├── stores/
+    │   └── authStore.ts
     ├── types/
-    │   └── api.ts          # envelope types
-    ├── views/
-    │   └── HomeView.vue
-    ├── App.vue             # renders RouterView
-    ├── main.ts             # creates the app, Pinia, and the router
-    ├── env.d.ts
+    ├── utils/
+    ├── views/            # Login, dashboard, users, roles, account
+    ├── App.vue
+    ├── main.ts
     └── style.css
 ```
 
@@ -144,21 +147,31 @@ Import application code with the `@/` alias (`@` is `src`).
 
 ## Routing
 
-`src/router/index.ts` uses `createWebHistory`. The only route is:
+`src/router/index.ts` uses `createWebHistory`. Protected pages sit under `AppLayout`.
 
-| Path | Name   | Layout      | Page       |
-| ---- | ------ | ----------- | ---------- |
-| `/`  | `home` | `AppLayout` | `HomeView` |
+| Path                | Name            | Permission                               |
+| ------------------- | --------------- | ---------------------------------------- |
+| `/login`            | `login`         | Public. Signed-in users leave this page. |
+| `/`                 | `home`          | Signed in                                |
+| `/access-denied`    | `access-denied` | Shown when a permission is missing       |
+| `/users`            | `users`         | `User_View`                              |
+| `/users/create`     | `users-create`  | `User_Create`                            |
+| `/users/:id/edit`   | `users-edit`    | `User_Edit`                              |
+| `/roles`            | `roles`         | `Role_View`                              |
+| `/roles/create`     | `roles-create`  | `Role_Create`                            |
+| `/roles/:id/edit`   | `roles-edit`    | `Role_Edit`                              |
+| `/roles/:id/rights` | `roles-rights`  | `Role_View` and `RoleRight_Assign`       |
+| `/account`          | `account`       | Signed in                                |
 
-There is no login route and no `beforeEach` guard. `App.vue` renders the matched route and nothing else.
-
-Add a new page as a view under `src/views/`, then register it on this router. Protected routes are still to be designed; the backend already rejects calls that lack a token or permission.
+A route with several permissions requires every one of them. The guard reads the permission claims stored from the access token.
 
 ## State management
 
-Pinia is installed and `app.use(createPinia())` runs in `src/main.ts`. `src/stores/` has no modules, so there is no auth or session state.
+`useAuthStore` holds the access token, the signed-in user, permission names, and the expiry time. `src/services/tokenStorage.ts` is the only module that reads or writes `sessionStorage`. The Axios interceptor reads the token from that module.
 
-When an auth store is added, keep the access token and the signed-in user there, and keep HTTP calls in `src/services/`. Views should read the store or call a service, not Axios.
+There is no refresh token. The store schedules a timer from the token `exp` claim. When that timer fires, or a response is HTTP 401, the session is cleared and `App.vue` sends the browser to `/login` with a `redirect` query. `logout()` clears the session without that redirect.
+
+Email and role id on the account page come from the login response. A tab reload restores the user id, username, role name, and permissions from the token. Email is not a claim, so it is blank until the next login.
 
 ## API integration
 
@@ -166,58 +179,56 @@ When an auth store is added, keep the access token and the signed-in user there,
 
 - `baseURL` is `import.meta.env.VITE_API_BASE_URL`
 - Default headers are `Accept: application/json` and `Content-Type: application/json`
+- The request interceptor sets `Authorization` when a token is stored and the request did not set one
+- The response interceptor calls the registered session handler on HTTP 401 only
 
-No request interceptor attaches `Authorization`. No response interceptor handles 401. No file under `src/services/` calls a specific endpoint. The home page does not import `http`.
+Feature modules:
 
-When a feature needs the API, add a service that imports `http` and types the body with `src/types/api.ts`:
+| Module            | Calls                                                                |
+| ----------------- | -------------------------------------------------------------------- |
+| `authService.ts`  | `POST /auth/login`                                                   |
+| `userService.ts`  | `/users` list, get, create, update, delete                           |
+| `roleService.ts`  | `/roles` list, get, create, update, delete, and `/roles/{id}/rights` |
+| `rightService.ts` | `GET /rights`                                                        |
 
-- `ApiResponse<T>` for login, get-by-id, and writes (`pagination` is null)
-- `PagedApiResponse<T>` for lists
+Responses use `src/types/api.ts`:
 
-The backend list query names are `pageNumber` and `pageSize`. Protected calls must send:
+- `ApiResponse<T>` for login, get-by-id, and writes
+- `PagedApiResponse<T>` for lists (`data` is the item array)
 
-```http
-Authorization: Bearer <access_token>
-```
-
-That header is not sent by this app yet. The API catalog, login body, and Scalar UI are in the root README: [API documentation](../README.md#api-documentation) and [Authentication](../README.md#authentication).
+List queries are `pageNumber` and `pageSize` (page size 20 on the lists, up to 100 when a form needs every visible role or right). `src/services/apiError.ts` maps the envelope `message` and `errors` onto form and page errors. HTTP 403, 404, and 409 stay on the page that made the call. They do not sign the user out.
 
 ## Authentication integration
 
-Not built. There is no login form, no stored token, and no route guard.
-
-The backend contract this app will call later:
-
 1. `POST /api/auth/login` with `username` and `password`.
 2. Read `data.accessToken` and `data.expiresAtUtc` from the envelope.
-3. Send `Authorization: Bearer <access_token>` on later requests.
+3. Later requests send `Authorization: Bearer <access_token>`.
 
-There is no refresh-token endpoint. Access tokens expire (30 minutes in the committed API settings). Permission names on the token, such as `User_View`, are what the API checks. A future UI may hide actions the user cannot perform; the API still enforces the policy.
-
-The local seed username is `superadmin`. The local password is recorded with the seed data, not in this frontend. See the root README section [Database setup](../README.md#database-setup).
+Access tokens expire (30 minutes in the committed API settings). Permission names on the token, such as `User_View`, are what the API checks. Hiding a button does not replace that check.
 
 ## Development guidelines
 
 - Use `<script setup lang="ts">` and the Composition API.
 - Prefer `ref` and `computed`. Avoid `any`.
-- Put HTTP in `src/services/`. One module per area once those calls exist.
-- Put shared session state in `src/stores/`. Do not read `localStorage` from random components.
-- Use Tailwind utilities. Match the spacing and slate palette already used in `AppLayout.vue` and `HomeView.vue`.
-- Show loading and error state from the envelope `message` and `errors` fields. Do not swallow failed requests.
+- Put HTTP in `src/services/`. One module per area.
+- Do not read `localStorage` or `sessionStorage` from components.
+- Use Tailwind utilities. Match the slate and violet styling already used in the layout and forms.
+- Show loading, empty, and error states. Surface the envelope `message` and field `errors`.
 - Keep a change easy to follow. This is a learning project; skip extra libraries and wrappers.
-- Longer notes live in the repo-root `.cursor/rules/` files whose names start with `frontend-` (architecture, TypeScript, API, auth, styling, quality).
+- Longer notes live in the repo-root `.cursor/rules/` files whose names start with `frontend-`.
 
 ### Scripts
 
-| Command                | Purpose                      |
-| ---------------------- | ---------------------------- |
-| `npm run dev`          | Vite dev server              |
-| `npm run build`        | Typecheck + production build |
-| `npm test`             | Vitest (`src/**/*.spec.ts`)  |
-| `npm run lint`         | ESLint                       |
-| `npm run lint:fix`     | ESLint with auto-fix         |
-| `npm run format`       | Prettier write               |
-| `npm run format:check` | Prettier check               |
+| Command                | Purpose                        |
+| ---------------------- | ------------------------------ |
+| `npm run dev`          | Vite dev server                |
+| `npm run build`        | Typecheck and production build |
+| `npm run preview`      | Serve the production build     |
+| `npm test`             | Vitest (`src/**/*.spec.ts`)    |
+| `npm run lint`         | ESLint                         |
+| `npm run lint:fix`     | ESLint with auto-fix           |
+| `npm run format`       | Prettier write                 |
+| `npm run format:check` | Prettier check                 |
 
 Before you open a pull request that touches the UI or types:
 

@@ -13,7 +13,7 @@ This repository is meant for a developer learning the stack, and for anyone who 
 | Area | Role in the project |
 | --- | --- |
 | Backend | ASP.NET Core Web API. Login, users, roles, role rights, and the rights catalog are implemented. |
-| Frontend | Vue application. The dev server, layout, and a shared HTTP client exist. Screens that call the API do not. |
+| Frontend | Vue application. Login, layout, users, roles, and role-right assignment call this API. |
 | Docs | Backend design notes and learning status. See [Further reading](#further-reading). |
 
 Frontend setup is documented in [frontend/README.md](frontend/README.md).
@@ -36,19 +36,20 @@ Phases recorded in [docs/LEARNING_PROGRESS.md](docs/LEARNING_PROGRESS.md) throug
 
 There is no automated test project. There is no global exception handler. There is no refresh-token endpoint. New rights are added in code and by a seed migration, not by an HTTP write API.
 
-### Frontend: initial scaffold
+### Frontend: learning UI complete
 
-The Vue app starts, shows a home page inside a simple layout, and creates a shared Axios client. These pieces are in place:
+The Vue app signs in against the API, keeps the access token for the browser tab, and uses the token's permission names to hide routes and buttons. The API still allows or denies every request.
 
-- Vite dev server, TypeScript, Vue Router, Pinia, Axios, and Tailwind CSS.
-- One route, `/`, rendered by `HomeView` inside `AppLayout`.
-- Pinia is registered in `src/main.ts`. `src/stores/` has no store modules.
-- `src/services/http.ts` sets `baseURL` from `VITE_API_BASE_URL`. It does not attach a token and it does not call any endpoint.
-- `src/types/api.ts` matches the backend response envelope.
+- Login and logout. Invalid credentials stay on the sign-in form. A successful login clears the password field.
+- The access token is stored in `sessionStorage`. Axios sends `Authorization: Bearer` and clears the session on HTTP 401. Token expiry and a 401 on a protected page return you to sign-in and remember the path. Log out does not.
+- Router guards for authentication and permissions. A missing permission opens an access-denied page.
+- Layout with a collapsible sidebar and a mobile drawer: Dashboard, Users, Roles, and Account.
+- Users: paged list, create, edit, delete, and a role dropdown.
+- Roles: paged list, create, edit, and delete. The system role is absent because the API does not return it.
+- Role rights: assigned and available rights come from the API. Assign and remove change one right at a time.
+- Vitest, ESLint, and Prettier.
 
-Login, token storage, route guards, and user, role, and rights screens are still to be built. Do not treat those as available features.
-
-`docs/PROJECT_CONTEXT.md` and `docs/PROJECT_HANDOVER_PROMPT.md` still describe the frontend as planned. The `frontend/` tree is ahead of those notes. Use the source and this README for the current frontend state.
+`docs/PROJECT_HANDOVER_PROMPT.md` is an earlier mentor brief. Use this README and [frontend/README.md](frontend/README.md) for the current app.
 
 ## Technology Stack
 
@@ -77,7 +78,7 @@ Architecture is **Controller → Service → DbContext**. There is no repository
 | TypeScript (strict) | `frontend/tsconfig.app.json` |
 | Vite 8 | `frontend/package.json` and `frontend/vite.config.ts` |
 | Vue Router | `frontend/src/router/index.ts` |
-| Pinia | registered in `frontend/src/main.ts`; no stores yet |
+| Pinia | Auth store in `frontend/src/stores/authStore.ts` |
 | Axios | `frontend/src/services/http.ts` |
 | Tailwind CSS 4 | `@tailwindcss/vite` in `frontend/vite.config.ts` |
 
@@ -209,17 +210,19 @@ That command creates the tables and seeds roles, rights, role-right rows, and th
 
 ### 6. Run the backend
 
-Use the `http` launch profile so the API listens on the URL the frontend is configured to call:
+`frontend/.env.example` points at the HTTPS profile. Start the API with that profile and leave the terminal running:
 
 ```bash
-dotnet run --project backend/demoCrudBackend/DemoCrudBackend.csproj --launch-profile http
+dotnet run --project backend/demoCrudBackend/DemoCrudBackend.csproj --launch-profile https
 ```
 
-The API is at `http://localhost:5118`. Leave this terminal running.
+The API is at `https://localhost:7193`. The same profile also listens on `http://localhost:5118` and redirects that port to HTTPS. A frontend base URL of `http://localhost:5118/api` will fail while this profile is running.
+
+To use plain HTTP instead, start `--launch-profile http` (API at `http://localhost:5118`) and set `VITE_API_BASE_URL` to `http://localhost:5118/api`.
 
 ### 7. Configure the frontend
 
-`frontend/.env` is gitignored. Copy the example file, which sets the API base URL to `http://localhost:5118/api`.
+`frontend/.env` is gitignored. Copy the example file. Its API base URL is `https://localhost:7193/api`.
 
 PowerShell:
 
@@ -232,6 +235,8 @@ Bash:
 ```bash
 cp frontend/.env.example frontend/.env
 ```
+
+Optional development-only keys `VITE_DEV_LOGIN_USERNAME` and `VITE_DEV_LOGIN_PASSWORD` can prefill the sign-in form when you run `npm run dev`. They are commented out in `.env.example`. Do not commit real credentials. Production builds and tests do not prefill the form.
 
 ### 8. Install frontend dependencies
 
@@ -251,15 +256,19 @@ Vite is not given a custom port in `frontend/vite.config.ts`, so the dev server 
 
 ### 10. How the frontend talks to the backend
 
-The shared Axios client in `frontend/src/services/http.ts` uses `VITE_API_BASE_URL`. With the example env file, requests would go to `http://localhost:5118/api/...`.
+The shared Axios client in `frontend/src/services/http.ts` uses `VITE_API_BASE_URL`. With the example env file, requests go to `https://localhost:7193/api/...`.
 
-The home page does not send those requests yet. CORS is prepared for the browser: in Development, the API allows origin `http://localhost:5173` with headers `Authorization` and `Content-Type`, and methods `GET`, `POST`, `PUT`, `DELETE`, and `OPTIONS`.
+Sign in at `http://localhost:5173/login`. The seeded username is `superadmin`. The password is the development seed recorded on that user in `backend/demoCrudBackend/Data/ApplicationDbContext.cs`. Use it only on your machine.
 
-To call the API today, use Scalar ([API documentation](#api-documentation)) or any HTTP client. Protected routes expect:
+CORS is prepared for the browser: in Development, the API allows origin `http://localhost:5173` with headers `Authorization` and `Content-Type`, and methods `GET`, `POST`, `PUT`, `DELETE`, and `OPTIONS`.
+
+Protected routes expect:
 
 ```http
 Authorization: Bearer <access_token>
 ```
+
+Scalar remains available for calling the API without the Vue app. See [API documentation](#api-documentation).
 
 ## Backend Configuration
 
@@ -378,12 +387,13 @@ You can also `cd frontend` and run `npm run dev`.
 
 | Surface | URL with the `http` profile | When it is available |
 | --- | --- | --- |
-| HTTP API | `http://localhost:5118` | `http` profile in `launchSettings.json`. Routes are under `/api`. |
-| OpenAPI document | `http://localhost:5118/openapi/v1.json` | Development only (`MapOpenApi`). |
-| Scalar API reference | `http://localhost:5118/scalar/v1` | Development only. `/scalar` redirects to `/scalar/`. |
-| Vue dev server | `http://localhost:5173` | Vite default. This repo does not set `server.port`. |
+| HTTPS API | `https://localhost:7193` | `https` profile. This matches `frontend/.env.example`. Routes are under `/api`. |
+| HTTP API | `http://localhost:5118` | `http` profile only. The `https` profile redirects this port. |
+| OpenAPI document | `https://localhost:7193/openapi/v1.json` | Development only (`MapOpenApi`). Use port 5118 if you started the `http` profile. |
+| Scalar API reference | `https://localhost:7193/scalar/v1` | Development only. `/scalar` redirects to `/scalar/`. |
+| Vue dev server | `http://localhost:5173` | Vite default. This repo does not set `server.port`. Sign in at `/login`. |
 
-The `https` launch profile listens on `https://localhost:7193` and `http://localhost:5118`. Prefer the `http` profile while the frontend env file points at `http://localhost:5118/api`. The `https` profile also turns on HTTPS redirection for port 5118, which breaks a browser call that still uses the HTTP base URL.
+The `https` launch profile listens on `https://localhost:7193` and `http://localhost:5118`, and it redirects HTTP to HTTPS. `frontend/.env.example` uses `https://localhost:7193/api`. Use the `http` profile only when `VITE_API_BASE_URL` is `http://localhost:5118/api`.
 
 Build and restore without running:
 
@@ -459,11 +469,11 @@ Failed validation returns 400 with `success: false`, message `Validation failed`
 
 ## API Documentation
 
-Scalar is registered only when the host environment is Development, which both launch profiles set. Start the API with the `http` profile, then open:
+Scalar is registered only when the host environment is Development, which both launch profiles set. Start the API with the `https` profile, then open:
 
-[http://localhost:5118/scalar/v1](http://localhost:5118/scalar/v1)
+[https://localhost:7193/scalar/v1](https://localhost:7193/scalar/v1)
 
-The raw OpenAPI document is [http://localhost:5118/openapi/v1.json](http://localhost:5118/openapi/v1.json).
+The raw OpenAPI document is [https://localhost:7193/openapi/v1.json](https://localhost:7193/openapi/v1.json). With the `http` profile, use port `5118` and `http`.
 
 In Scalar, call `POST /api/auth/login`, copy `data.accessToken` from the response, and choose **Authorize**. Paste the token without the `Bearer` prefix. Protected operations then send the header for you.
 
@@ -509,7 +519,7 @@ Work in `frontend/` and follow [frontend/README.md](frontend/README.md). Convent
 
 - Components use `<script setup lang="ts">`.
 - HTTP calls belong in `src/services/`, using the shared Axios instance. Views should not call Axios directly.
-- Shared client state belongs in Pinia stores under `src/stores/`. None exist yet.
+- The signed-in session lives in the Pinia auth store. Do not read the token from components.
 - Style with Tailwind utility classes. Do not add a component library unless the project explicitly asks for one.
 - Route and button checks are only a guide. The API still enforces permissions.
 
@@ -536,25 +546,23 @@ Work in `frontend/` and follow [frontend/README.md](frontend/README.md). Convent
 | `dotnet run` uses an unexpected URL | Pass `--launch-profile http` or `--launch-profile https`. Ports are `5118` (HTTP) and `7193` (HTTPS) in `launchSettings.json`. |
 | Port 5118 or 5173 is already taken | Stop the other process, or change the launch URL and, for the frontend, `VITE_API_BASE_URL` plus `Cors:AllowedOrigin` so they still match. |
 | Browser call from the Vue app fails with a CORS error | The API must be in Development so `appsettings.Development.json` loads. `Cors:AllowedOrigin` must be the exact Vite origin, including scheme and port. If Vite moves to 5174 because 5173 is busy, update that setting and restart the API. |
-| Frontend requests go to the wrong host | `frontend/.env` must exist. `VITE_API_BASE_URL` in `.env.example` is `http://localhost:5118/api`. Restart `npm run dev` after changing it. |
+| Frontend requests go to the wrong host | `frontend/.env` must exist. `VITE_API_BASE_URL` in `.env.example` is `https://localhost:7193/api`. Restart `npm run dev` after changing it. |
 | `npm install` or `npm run dev` fails on the Node version | Vite 8 requires Node.js `^20.19.0` or `>=22.12.0`. |
 | Scalar or `/openapi/v1.json` returns 404 | The environment is not Development, or the app is not the process you think is on that port. Launch profiles set `ASPNETCORE_ENVIRONMENT=Development`. |
 | Login works but a new permission returns 403 | The token was issued before that right existed. Log in again. |
-| HTTPS errors when the frontend calls `http://localhost:5118` | You started the `https` profile, so HTTP is redirected. Use `--launch-profile http`. |
+| Certificate warning or failed call to `https://localhost:7193` | Trust the local ASP.NET development certificate (`dotnet dev-certs https --trust`), or switch both the API profile and `VITE_API_BASE_URL` to HTTP. |
+| HTTPS errors when the frontend calls `http://localhost:5118` | You started the `https` profile, so HTTP is redirected. Use `--launch-profile http` and set `VITE_API_BASE_URL` to `http://localhost:5118/api`. |
 
 ## Future Development
 
-These items are planned in `docs/LEARNING_PROGRESS.md` and the frontend rules. They are not implemented.
+These items are still open. The Vue screens listed above are already in the app.
 
 | Area | Planned |
 | --- | --- |
 | Backend | Automated tests for auth, users, roles, and role rights |
 | Backend | Optional global exception handling |
-| Frontend | Login, access-token storage, and logout |
-| Frontend | Router guards and permission-aware navigation |
-| Frontend | CRUD screens for users, roles, and rights |
-| Frontend | Axios interceptors that attach the bearer token and handle 401 |
-| Frontend | A test runner and tests. The rules mention Vitest; it is not in `package.json` |
+| Frontend | Browser end-to-end tests. Unit tests already cover services, forms, lists, and guards. |
+| API | Refresh tokens. Expired access tokens require a new login. |
 
 Do not add a rights create/update/delete API unless a later task asks for it.
 
@@ -569,7 +577,7 @@ Do not add a rights create/update/delete API unless a later task asks for it.
 
 3. Keep the change small. Match the surrounding code and the conventions in `.cursor/rules/`.
 4. Backend: exercise the route you changed (Scalar or an HTTP client) against a database that has the migrations applied. There is no automated test suite yet, so say what you ran by hand.
-5. Frontend: run `npm run build --prefix frontend` so `vue-tsc` and the production build both succeed. When the change has a visible UI, check it in the browser.
+5. Frontend: from `frontend/`, run `npm test`, `npm run lint`, `npm run format:check`, and `npm run build`. When the change has a visible UI, check it in the browser.
 6. Open a pull request that explains why the change was made and how you checked it.
 
 Do not commit user secrets, `frontend/.env`, or a real JWT signing key. `frontend/.env` is gitignored. The .NET user-secrets file lives outside this repository.

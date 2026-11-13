@@ -54,8 +54,11 @@ function iconFor(label: string): 'dashboard' | 'users' | 'roles' | 'account' {
   />
 
   <aside
-    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-slate-200 transition-transform duration-200 lg:static lg:translate-x-0"
-    :class="[mobileOpen ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-20' : 'lg:w-64']"
+    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-slate-200 transition-transform duration-200 lg:static"
+    :class="[
+      mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
+      collapsed ? 'lg:w-20' : 'lg:w-64',
+    ]"
     aria-label="Application"
   >
     <div class="flex h-16 items-center gap-3 border-b border-slate-800 px-4">

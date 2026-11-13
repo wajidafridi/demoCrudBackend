@@ -53,9 +53,6 @@ const canViewRoles = computed(() => authStore.hasPermission('Role_View'))
         </div>
         <h3 class="text-lg font-semibold text-slate-900">Users</h3>
         <p class="mt-1 text-sm text-slate-600">Manage system users and their access.</p>
-        <p class="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-          Counts available in a later phase
-        </p>
         <RouterLink
           :to="{ name: 'users' }"
           class="mt-4 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
@@ -74,10 +71,7 @@ const canViewRoles = computed(() => authStore.hasPermission('Role_View'))
           <NavIcons name="roles" />
         </div>
         <h3 class="text-lg font-semibold text-slate-900">Roles</h3>
-        <p class="mt-1 text-sm text-slate-600">Manage roles and permissions.</p>
-        <p class="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-          Counts available in a later phase
-        </p>
+        <p class="mt-1 text-sm text-slate-600">Manage roles and the rights assigned to them.</p>
         <RouterLink
           :to="{ name: 'roles' }"
           class="mt-4 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
