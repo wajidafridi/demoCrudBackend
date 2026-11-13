@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import NavIcons from '@/components/icons/NavIcons.vue'
+import ThemeSelector from '@/components/ThemeSelector.vue'
 import { useAuthStore } from '@/stores/authStore'
 
 defineProps<{
@@ -28,11 +29,11 @@ async function onLogout(): Promise<void> {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+  <header class="sticky top-0 z-30 border-b border-border bg-surface">
     <div class="flex h-16 items-center gap-3 px-4 sm:px-6">
       <button
         type="button"
-        class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 lg:hidden"
+        class="rounded-lg p-2 text-foreground-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
         aria-label="Open navigation"
         @click="emit('openMobile')"
       >
@@ -40,16 +41,21 @@ async function onLogout(): Promise<void> {
       </button>
 
       <div class="min-w-0 flex-1">
-        <p class="truncate text-lg font-semibold tracking-tight text-slate-900">{{ pageTitle }}</p>
-        <p v-if="route.meta.title && route.name !== 'home'" class="truncate text-xs text-slate-500">
+        <p class="truncate text-lg font-semibold tracking-tight text-foreground">{{ pageTitle }}</p>
+        <p
+          v-if="route.meta.title && route.name !== 'home'"
+          class="truncate text-xs text-foreground-muted"
+        >
           DemoCrud / {{ pageTitle }}
         </p>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <ThemeSelector />
+
         <button
           type="button"
-          class="hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:inline-flex"
+          class="hidden rounded-lg p-2 text-foreground-muted disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
           aria-label="Notifications"
           disabled
           title="Notifications coming later"
@@ -58,23 +64,23 @@ async function onLogout(): Promise<void> {
         </button>
 
         <div
-          class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5"
+          class="flex items-center gap-3 rounded-xl border border-border bg-surface-secondary px-2.5 py-1.5"
         >
           <div
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-sky-600 text-xs font-semibold text-white"
+            class="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
             aria-hidden="true"
           >
             {{ initials }}
           </div>
           <div class="hidden min-w-0 sm:block">
-            <p class="truncate text-sm font-semibold text-slate-900">{{ displayName }}</p>
-            <p class="truncate text-xs text-slate-500">{{ roleName }}</p>
+            <p class="truncate text-sm font-semibold text-foreground">{{ displayName }}</p>
+            <p class="truncate text-xs text-foreground-muted">{{ roleName }}</p>
           </div>
         </div>
 
         <button
           type="button"
-          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+          class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           @click="onLogout"
         >
           <NavIcons name="logout" />

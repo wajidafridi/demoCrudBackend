@@ -28,7 +28,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-dvh overflow-hidden bg-slate-100">
+  <div class="flex h-dvh overflow-hidden bg-page">
     <AppSidebar
       :collapsed="sidebarCollapsed"
       :mobile-open="mobileOpen"

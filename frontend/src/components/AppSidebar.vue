@@ -48,33 +48,33 @@ function iconFor(label: string): 'dashboard' | 'users' | 'roles' | 'account' {
   <!-- Mobile overlay -->
   <div
     v-if="mobileOpen"
-    class="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+    class="fixed inset-0 z-40 bg-overlay lg:hidden"
     aria-hidden="true"
     @click="emit('closeMobile')"
   />
 
   <aside
-    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-slate-200 transition-transform duration-200 lg:static"
+    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface text-foreground transition-transform duration-200 lg:static"
     :class="[
       mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
       collapsed ? 'lg:w-20' : 'lg:w-64',
     ]"
     aria-label="Application"
   >
-    <div class="flex h-16 items-center gap-3 border-b border-slate-800 px-4">
+    <div class="flex h-16 items-center gap-3 border-b border-border px-4">
       <div
-        class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground"
         aria-hidden="true"
       >
         DC
       </div>
       <div v-if="!collapsed || mobileOpen" class="min-w-0">
-        <p class="truncate text-sm font-semibold text-white">DemoCrud</p>
-        <p class="truncate text-xs text-slate-400">Admin console</p>
+        <p class="truncate text-sm font-semibold text-foreground">DemoCrud</p>
+        <p class="truncate text-xs text-foreground-muted">Admin console</p>
       </div>
       <button
         type="button"
-        class="ml-auto rounded-md p-1.5 text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 lg:hidden"
+        class="ml-auto rounded-md p-1.5 text-foreground-secondary hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
         aria-label="Close navigation"
         @click="emit('closeMobile')"
       >
@@ -87,8 +87,9 @@ function iconFor(label: string): 'dashboard' | 'users' | 'roles' | 'account' {
         v-for="item in visibleNavItems"
         :key="item.label"
         :to="item.to"
-        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400"
-        active-class="!bg-violet-600 !text-white hover:!bg-violet-600"
+        :aria-label="item.label"
+        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground-secondary transition hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        active-class="!bg-accent !font-semibold !text-accent-foreground hover:!bg-accent-hover"
         @click="emit('closeMobile')"
       >
         <NavIcons :name="iconFor(item.label)" />
@@ -96,10 +97,10 @@ function iconFor(label: string): 'dashboard' | 'users' | 'roles' | 'account' {
       </RouterLink>
     </nav>
 
-    <div class="hidden border-t border-slate-800 p-3 lg:block">
+    <div class="hidden border-t border-border p-3 lg:block">
       <button
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400"
+        class="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground-secondary hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         @click="emit('toggleCollapse')"
       >
