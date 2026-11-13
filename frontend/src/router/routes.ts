@@ -6,7 +6,7 @@ import AccountView from '@/views/AccountView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RoleFormView from '@/views/RoleFormView.vue'
-import RoleRightsView from '@/views/RoleRightsView.vue'
+import RightsView from '@/views/RightsView.vue'
 import RolesView from '@/views/RolesView.vue'
 import UserFormView from '@/views/UserFormView.vue'
 import UsersView from '@/views/UsersView.vue'
@@ -27,6 +27,7 @@ export const routes: RouteRecordRaw[] = [
         component: DashboardView,
         meta: {
           title: 'Dashboard',
+          nav: 'home',
           requiresAuth: true,
         },
       },
@@ -44,6 +45,7 @@ export const routes: RouteRecordRaw[] = [
         component: UsersView,
         meta: {
           title: 'Users',
+          nav: 'users',
           requiresAuth: true,
           permissions: ['User_View'],
         },
@@ -54,6 +56,7 @@ export const routes: RouteRecordRaw[] = [
         component: UserFormView,
         meta: {
           title: 'Create User',
+          nav: 'users',
           requiresAuth: true,
           permissions: ['User_Create'],
         },
@@ -64,6 +67,7 @@ export const routes: RouteRecordRaw[] = [
         component: UserFormView,
         meta: {
           title: 'Edit User',
+          nav: 'users',
           requiresAuth: true,
           permissions: ['User_Edit'],
         },
@@ -74,6 +78,7 @@ export const routes: RouteRecordRaw[] = [
         component: RolesView,
         meta: {
           title: 'Roles',
+          nav: 'roles',
           requiresAuth: true,
           permissions: ['Role_View'],
         },
@@ -84,6 +89,7 @@ export const routes: RouteRecordRaw[] = [
         component: RoleFormView,
         meta: {
           title: 'Create Role',
+          nav: 'roles',
           requiresAuth: true,
           permissions: ['Role_Create'],
         },
@@ -94,6 +100,7 @@ export const routes: RouteRecordRaw[] = [
         component: RoleFormView,
         meta: {
           title: 'Edit Role',
+          nav: 'roles',
           requiresAuth: true,
           permissions: ['Role_Edit'],
         },
@@ -104,17 +111,31 @@ export const routes: RouteRecordRaw[] = [
         component: AccountView,
         meta: {
           title: 'My Account',
+          nav: 'account',
           requiresAuth: true,
+        },
+      },
+      {
+        path: 'rights',
+        name: 'rights',
+        component: RightsView,
+        meta: {
+          title: 'Rights Management',
+          nav: 'rights',
+          requiresAuth: true,
+          permissions: ['Role_View', 'Right_View'],
         },
       },
       {
         path: 'roles/:id/rights',
         name: 'roles-rights',
-        component: RoleRightsView,
+        redirect: (to) => ({
+          name: 'rights',
+          query: { roleId: String(to.params.id) },
+        }),
         meta: {
-          title: 'Role Rights',
           requiresAuth: true,
-          permissions: ['Role_View', 'RoleRight_Assign'],
+          permissions: ['Role_View', 'Right_View'],
         },
       },
     ],

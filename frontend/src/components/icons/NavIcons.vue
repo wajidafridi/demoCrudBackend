@@ -1,7 +1,16 @@
 <script setup lang="ts">
 defineProps<{
   name:
-    'dashboard' | 'users' | 'roles' | 'account' | 'menu' | 'close' | 'logout' | 'bell' | 'chevron'
+    | 'dashboard'
+    | 'users'
+    | 'roles'
+    | 'rights'
+    | 'account'
+    | 'menu'
+    | 'close'
+    | 'logout'
+    | 'bell'
+    | 'chevron'
 }>()
 </script>
 
@@ -51,6 +60,21 @@ defineProps<{
       d="M12 3 4.5 6.5v5.2c0 4.4 3.1 8.4 7.5 9.3 4.4-.9 7.5-4.9 7.5-9.3V6.5L12 3Z"
     />
     <path stroke-linecap="round" stroke-linejoin="round" d="m9.5 12 1.7 1.7L14.8 10" />
+  </svg>
+  <svg
+    v-else-if="name === 'rights'"
+    class="h-5 w-5 shrink-0"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    aria-hidden="true"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
+    />
   </svg>
   <svg
     v-else-if="name === 'account'"

@@ -113,15 +113,31 @@ describe('auth navigation guard', () => {
     expect(router.currentRoute.value.name).toBe('roles-edit')
   })
 
-  it('requires all listed permissions when multiple are configured', async () => {
+  it('requires Role_View and Right_View to open rights management', async () => {
     installSession({ permissions: ['Role_View'] })
     const router = createTestRouter()
-    await router.push({ name: 'roles-rights', params: { id: '1' } })
+    await router.push({ name: 'rights' })
     expect(router.currentRoute.value.name).toBe('access-denied')
 
+    installSession({ permissions: ['RoleRight_Assign'] })
+    await router.push({ name: 'rights' })
+    expect(router.currentRoute.value.name).toBe('access-denied')
+
+    installSession({ permissions: ['Role_View', 'Right_View'] })
+    await router.push({ name: 'rights' })
+    expect(router.currentRoute.value.name).toBe('rights')
+  })
+
+  it('redirects the legacy role rights route to the selected role', async () => {
     installSession({ permissions: ['Role_View', 'RoleRight_Assign'] })
-    await router.push({ name: 'roles-rights', params: { id: '1' } })
-    expect(router.currentRoute.value.name).toBe('roles-rights')
+    const router = createTestRouter()
+    await router.push({ name: 'roles-rights', params: { id: '4' } })
+    expect(router.currentRoute.value.name).toBe('access-denied')
+
+    installSession({ permissions: ['Role_View', 'Right_View'] })
+    await router.push({ name: 'roles-rights', params: { id: '4' } })
+    expect(router.currentRoute.value.name).toBe('rights')
+    expect(router.currentRoute.value.query.roleId).toBe('4')
   })
 
   it('allows auth-only routes when authenticated even without permission metadata', async () => {

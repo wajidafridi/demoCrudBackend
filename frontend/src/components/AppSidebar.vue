@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 
 import NavIcons from '@/components/icons/NavIcons.vue'
-import { appNavItems } from '@/navigation/appNav'
+import { appNavItems, type AppNavItem } from '@/navigation/appNav'
 import { useAuthStore } from '@/stores/authStore'
 
 defineProps<{
@@ -17,30 +17,42 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const route = useRoute()
 
 const visibleNavItems = computed(() =>
   appNavItems.filter((item) => {
     if (!authStore.isAuthenticated) {
       return false
     }
-    if (item.permission == null) {
+    if (item.permissions == null) {
       return true
     }
-    return authStore.hasPermission(item.permission)
+    return item.permissions.every((permission) => authStore.hasPermission(permission))
   }),
 )
 
-function iconFor(label: string): 'dashboard' | 'users' | 'roles' | 'account' {
-  switch (label) {
-    case 'Users':
+function isActive(item: AppNavItem): boolean {
+  return route.meta.nav === item.nav
+}
+
+function iconFor(item: AppNavItem): 'dashboard' | 'users' | 'roles' | 'rights' | 'account' {
+  switch (item.nav) {
+    case 'users':
       return 'users'
-    case 'Roles':
+    case 'roles':
       return 'roles'
-    case 'Account':
+    case 'rights':
+      return 'rights'
+    case 'account':
       return 'account'
     default:
       return 'dashboard'
   }
+}
+
+function onNavigate(event: MouseEvent, navigate: (event?: MouseEvent) => void): void {
+  navigate(event)
+  emit('closeMobile')
 }
 </script>
 
@@ -85,15 +97,26 @@ function iconFor(label: string): 'dashboard' | 'users' | 'roles' | 'account' {
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Main">
       <RouterLink
         v-for="item in visibleNavItems"
-        :key="item.label"
+        :key="item.nav"
+        v-slot="{ href, navigate }"
         :to="item.to"
-        :aria-label="item.label"
-        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground-secondary transition hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-        active-class="!bg-accent !font-semibold !text-accent-foreground hover:!bg-accent-hover"
-        @click="emit('closeMobile')"
+        custom
       >
-        <NavIcons :name="iconFor(item.label)" />
-        <span v-if="!collapsed || mobileOpen">{{ item.label }}</span>
+        <a
+          :href="href"
+          :aria-label="item.label"
+          :aria-current="isActive(item) ? 'page' : undefined"
+          class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          :class="
+            isActive(item)
+              ? 'bg-accent font-semibold text-accent-foreground hover:bg-accent-hover'
+              : 'text-foreground-secondary hover:bg-surface-secondary hover:text-foreground'
+          "
+          @click="onNavigate($event, navigate)"
+        >
+          <NavIcons :name="iconFor(item)" />
+          <span v-if="!collapsed || mobileOpen" class="truncate">{{ item.label }}</span>
+        </a>
       </RouterLink>
     </nav>
 

@@ -7,6 +7,8 @@ const props = defineProps<{
   message: string
   confirmLabel: string
   busy?: boolean
+  /** Shown on the confirm button while `busy` is true. */
+  busyLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -63,7 +65,7 @@ onBeforeUnmount(() => {
           :disabled="busy"
           @click="emit('confirm')"
         >
-          {{ busy ? 'Deleting…' : confirmLabel }}
+          {{ busy ? (busyLabel ?? 'Deleting…') : confirmLabel }}
         </button>
       </div>
     </div>
