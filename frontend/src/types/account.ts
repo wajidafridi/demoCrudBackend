@@ -18,3 +18,21 @@ export interface AccountProfile {
   isSystem: boolean
   createdAt: string
 }
+
+/** CamelCase JSON for `Dtos.UpdateAccountRequestDto`. Identity stays on the token. */
+export interface UpdateAccountRequest {
+  firstName: string
+  lastName: string
+  email: string
+  phoneNumber: string | null
+  gender: string | null
+  dateOfBirth: string | null
+  address: string | null
+  imageUrl: string | null
+}
+
+/** CamelCase JSON for `Dtos.ChangePasswordRequestDto`. */
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
