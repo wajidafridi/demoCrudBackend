@@ -90,14 +90,29 @@ builder.Services
 
 const string VueFrontendCorsPolicy = "VueFrontend";
 var vueOrigin = builder.Configuration["Cors:AllowedOrigin"];
+var corsOrigins = new List<string>();
 
 if (!string.IsNullOrWhiteSpace(vueOrigin))
+{
+    corsOrigins.Add(vueOrigin);
+
+    // Browsers treat localhost and 127.0.0.1 as different origins.
+    if (vueOrigin.Contains("localhost", StringComparison.OrdinalIgnoreCase))
+    {
+        corsOrigins.Add(
+            vueOrigin.Replace("localhost", "127.0.0.1", StringComparison.OrdinalIgnoreCase));
+    }
+}
+
+if (corsOrigins.Count > 0)
 {
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(VueFrontendCorsPolicy, policy =>
         {
-            policy.WithOrigins(vueOrigin)
+            // Accept is CORS-safelisted, so only these two need approval.
+            // Add any custom request header here (e.g. X-Request-Id).
+            policy.WithOrigins(corsOrigins.ToArray())
                 .WithHeaders("Authorization", "Content-Type")
                 .WithMethods(
                     HttpMethods.Get,
@@ -134,12 +149,13 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
-
-if (!string.IsNullOrWhiteSpace(vueOrigin))
+// CORS must run before HTTPS redirection so preflight OPTIONS is not redirected without ACAO headers.
+if (corsOrigins.Count > 0)
 {
     app.UseCors(VueFrontendCorsPolicy);
 }
+
+app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

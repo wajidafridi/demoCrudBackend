@@ -1,6 +1,7 @@
 import type { Router } from 'vue-router'
 
 import { useAuthStore } from '@/stores/authStore'
+import { resolveSafeInternalPath } from '@/utils/safeRedirect'
 
 function collectRequiredPermissions(permissionsLists: Array<string[] | undefined>): string[] {
   const required = new Set<string>()
@@ -26,12 +27,7 @@ export function setupAuthGuard(router: Router): void {
         return true
       }
 
-      const redirect = to.query.redirect
-      if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
-        return redirect
-      }
-
-      return { name: 'home' }
+      return resolveSafeInternalPath(to.query.redirect, '/')
     }
 
     // Access-denied is reachable without further permission checks (prevents loops).
