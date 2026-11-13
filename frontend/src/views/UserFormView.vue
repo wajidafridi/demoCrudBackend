@@ -13,7 +13,9 @@ import {
   type UserFormValues,
 } from '@/features/users/userForm'
 import { toApiClientError } from '@/services/apiError'
+import { listAllRoles } from '@/services/roleService'
 import { createUser, getUser, updateUser } from '@/services/userService'
+import type { RoleResponse } from '@/types/role'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,12 +29,35 @@ const userId = ref<number | null>(null)
 const submitting = ref(false)
 const serverMessage = ref<string | null>(null)
 const serverFieldErrors = ref<Record<string, string[]> | null>(null)
+const roles = ref<RoleResponse[]>([])
+const rolesLoading = ref(true)
+const rolesError = ref<string | null>(null)
 
-onMounted(async () => {
+async function loadRoles(): Promise<void> {
+  rolesLoading.value = true
+  rolesError.value = null
+
+  try {
+    roles.value = await listAllRoles()
+  } catch (error: unknown) {
+    roles.value = []
+    rolesError.value = toApiClientError(error, 'Could not load roles.').message
+  } finally {
+    rolesLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadRoles()
+
   if (mode.value !== 'edit') {
     return
   }
 
+  void loadUser()
+})
+
+async function loadUser(): Promise<void> {
   const id = parseUserId(route.params.id)
   if (id == null) {
     loadError.value = 'This user link is invalid.'
@@ -51,7 +76,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
 
 function onCancel(): void {
   if (submitting.value) {
@@ -121,6 +146,9 @@ async function onSubmit(payload: UserFormSubmission): Promise<void> {
         :mode="mode"
         :initial-values="formValues"
         :role-name="roleName"
+        :roles="roles"
+        :roles-loading="rolesLoading"
+        :roles-error="rolesError"
         :submitting="submitting"
         :server-message="serverMessage"
         :server-field-errors="serverFieldErrors"

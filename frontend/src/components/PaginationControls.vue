@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import type { PaginationMetadata } from '@/types/api'
 
-defineProps<{
-  pagination: PaginationMetadata
-  disabled?: boolean
-}>()
+withDefaults(
+  defineProps<{
+    pagination: PaginationMetadata
+    disabled?: boolean
+    /** Plural noun used in the count, for example "users" or "roles". */
+    itemLabel?: string
+  }>(),
+  {
+    itemLabel: 'users',
+  },
+)
 
 const emit = defineEmits<{
   change: [pageNumber: number]
@@ -15,7 +22,7 @@ const emit = defineEmits<{
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <p class="text-sm text-slate-600">
       Page {{ pagination.pageNumber }} of {{ pagination.totalPages }} · {{ pagination.totalCount }}
-      users
+      {{ itemLabel }}
     </p>
     <div class="flex gap-2">
       <button

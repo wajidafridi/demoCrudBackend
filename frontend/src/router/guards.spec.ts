@@ -102,6 +102,17 @@ describe('auth navigation guard', () => {
     expect(router.currentRoute.value.name).toBe('users-edit')
   })
 
+  it('requires Role_Edit to open the edit role route', async () => {
+    installSession({ permissions: ['Role_View'] })
+    const router = createTestRouter()
+    await router.push({ name: 'roles-edit', params: { id: '2' } })
+    expect(router.currentRoute.value.name).toBe('access-denied')
+
+    installSession({ permissions: ['Role_Edit'] })
+    await router.push({ name: 'roles-edit', params: { id: '2' } })
+    expect(router.currentRoute.value.name).toBe('roles-edit')
+  })
+
   it('requires all listed permissions when multiple are configured', async () => {
     installSession({ permissions: ['Role_View'] })
     const router = createTestRouter()

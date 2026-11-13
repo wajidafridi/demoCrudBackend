@@ -12,11 +12,15 @@ import {
   type UserFormSubmission,
   type UserFormValues,
 } from '@/features/users/userForm'
+import type { RoleResponse } from '@/types/role'
 
 const props = defineProps<{
   mode: UserFormMode
   initialValues: UserFormValues
   roleName?: string | null
+  roles: RoleResponse[]
+  rolesLoading: boolean
+  rolesError: string | null
   submitting: boolean
   serverMessage: string | null
   serverFieldErrors: Record<string, string[]> | null
@@ -33,13 +37,48 @@ const clientErrors = ref<Partial<Record<UserFormField, string>>>({})
 
 const hasClientErrors = computed(() => Object.keys(clientErrors.value).length > 0)
 
-const roleHint = computed(() => {
-  const base = 'Enter the numeric id of an existing role. The system role cannot be assigned.'
-  if (props.mode === 'edit' && props.roleName != null && props.roleName.trim().length > 0) {
-    return `Current role: ${props.roleName}. ${base}`
+const preservedRole = computed(() => {
+  if (props.mode !== 'edit' || props.rolesLoading || props.rolesError != null) {
+    return null
   }
 
-  return base
+  const currentId = values.roleId.trim()
+  if (currentId.length === 0 || props.roles.some((role) => String(role.id) === currentId)) {
+    return null
+  }
+
+  const name = props.roleName?.trim()
+  return {
+    id: Number(currentId),
+    name: name != null && name.length > 0 ? name : `Role ${currentId}`,
+  }
+})
+
+/** The current role is hidden by the roles API, so it cannot be swapped for another role. */
+const roleLocked = computed(() => preservedRole.value != null)
+
+const roleChoices = computed(() => {
+  if (preservedRole.value != null) {
+    return [preservedRole.value]
+  }
+
+  return props.roles
+})
+
+const roleHint = computed(() => {
+  if (props.rolesLoading) {
+    return 'Loading roles…'
+  }
+
+  if (roleLocked.value) {
+    return 'This role is protected and cannot be changed.'
+  }
+
+  if (props.rolesError == null && props.roles.length === 0) {
+    return 'No roles are available to assign.'
+  }
+
+  return null
 })
 
 function errorFor(field: UserFormField): string | null {
@@ -143,16 +182,47 @@ function onSubmit(): void {
           </button>
         </template>
       </TextField>
-      <TextField
-        id="roleId"
-        v-model="values.roleId"
-        label="Role id"
-        required
-        inputmode="numeric"
-        :disabled="submitting"
-        :error="errorFor('roleId')"
-        :hint="roleHint"
-      />
+      <div class="space-y-1.5">
+        <label for="roleId" class="block text-sm font-medium text-slate-700">
+          Role
+          <span class="text-red-600">*</span>
+        </label>
+        <select
+          id="roleId"
+          v-model="values.roleId"
+          name="roleId"
+          required
+          class="block w-full rounded-md border px-3 py-2 text-slate-900 shadow-sm outline-none focus:ring-2 disabled:bg-slate-100"
+          :class="
+            errorFor('roleId') || rolesError
+              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+              : 'border-slate-300 focus:border-violet-500 focus:ring-violet-100'
+          "
+          :disabled="submitting || rolesLoading || roleLocked"
+          :aria-invalid="errorFor('roleId') != null || rolesError != null"
+          :aria-describedby="
+            errorFor('roleId')
+              ? 'roleId-error'
+              : rolesError
+                ? 'roleId-load-error'
+                : roleHint
+                  ? 'roleId-hint'
+                  : undefined
+          "
+        >
+          <option v-if="!roleLocked" value="" disabled>Select a role</option>
+          <option v-for="role in roleChoices" :key="role.id" :value="String(role.id)">
+            {{ role.name }}
+          </option>
+        </select>
+        <p v-if="errorFor('roleId')" id="roleId-error" class="text-sm text-red-600">
+          {{ errorFor('roleId') }}
+        </p>
+        <p v-else-if="rolesError" id="roleId-load-error" class="text-sm text-red-600">
+          {{ rolesError }}
+        </p>
+        <p v-else-if="roleHint" id="roleId-hint" class="text-sm text-slate-500">{{ roleHint }}</p>
+      </div>
       <TextField
         id="phoneNumber"
         v-model="values.phoneNumber"

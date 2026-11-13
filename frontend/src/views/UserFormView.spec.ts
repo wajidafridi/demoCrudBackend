@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiClientError } from '@/services/apiError'
+import { listAllRoles } from '@/services/roleService'
 import { createUser, getUser, updateUser } from '@/services/userService'
 import type { UserResponse } from '@/types/user'
 import UserFormView from '@/views/UserFormView.vue'
@@ -12,6 +13,15 @@ vi.mock('@/services/userService', () => ({
   getUser: vi.fn(),
   updateUser: vi.fn(),
 }))
+
+vi.mock('@/services/roleService', () => ({
+  listAllRoles: vi.fn(),
+}))
+
+const assignableRoles = [
+  { id: 2, name: 'Admin' },
+  { id: 3, name: 'User' },
+]
 
 const ada: UserResponse = {
   id: 2,
@@ -57,6 +67,7 @@ async function mountForm(
 }
 
 async function fillCreateForm(wrapper: ReturnType<typeof mount>): Promise<void> {
+  await flushPromises()
   await wrapper.get('#firstName').setValue('Ada')
   await wrapper.get('#lastName').setValue('Lovelace')
   await wrapper.get('#email').setValue('ada@example.com')
@@ -70,6 +81,8 @@ describe('UserFormView', () => {
     vi.mocked(createUser).mockReset()
     vi.mocked(getUser).mockReset()
     vi.mocked(updateUser).mockReset()
+    vi.mocked(listAllRoles).mockReset()
+    vi.mocked(listAllRoles).mockResolvedValue(assignableRoles)
   })
 
   it('blocks create until required fields are valid', async () => {
@@ -82,7 +95,7 @@ describe('UserFormView', () => {
     expect(wrapper.text()).toContain('Email is required.')
     expect(wrapper.text()).toContain('Username is required.')
     expect(wrapper.text()).toContain('Password is required.')
-    expect(wrapper.text()).toContain('Role id is required.')
+    expect(wrapper.text()).toContain('Role is required.')
     expect(wrapper.text()).toContain('Please correct the highlighted fields.')
     expect(createUser).not.toHaveBeenCalled()
   })
@@ -154,7 +167,8 @@ describe('UserFormView', () => {
     expect(wrapper.find('#password').exists()).toBe(false)
     expect(inputValue(wrapper, '#userName')).toBe('ada')
     expect(inputValue(wrapper, '#dateOfBirth')).toBe('1990-01-01')
-    expect(wrapper.text()).toContain('Current role: Admin')
+    expect(selectValue(wrapper, '#roleId')).toBe('2')
+    expect(wrapper.text()).toContain('Admin')
 
     await wrapper.get('#firstName').setValue('Grace')
     await wrapper.get('form').trigger('submit')
@@ -212,12 +226,68 @@ describe('UserFormView', () => {
     expect(invalid.wrapper.text()).toContain('This user link is invalid.')
     expect(getUser).toHaveBeenCalledTimes(1)
   })
+
+  it('offers role names from the roles API instead of a numeric id field', async () => {
+    const { wrapper } = await mountForm('/users/create')
+    await flushPromises()
+
+    const roleField = wrapper.get('#roleId')
+    expect(roleField.element.tagName).toBe('SELECT')
+    expect(roleField.text()).toContain('Admin')
+    expect(roleField.text()).toContain('User')
+    expect(wrapper.text()).not.toContain('Role id')
+    expect(listAllRoles).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a protected current role selected and does not offer a replacement', async () => {
+    vi.mocked(getUser).mockResolvedValue({ ...ada, roleId: 1, roleName: 'SuperAdmin' })
+    vi.mocked(updateUser).mockResolvedValue('User updated successfully.')
+
+    const { wrapper } = await mountForm('/users/2/edit')
+    await flushPromises()
+
+    const roleField = wrapper.get('#roleId')
+    expect(roleField.attributes('disabled')).toBeDefined()
+    const optionLabels = roleField.findAll('option').map((option) => option.text())
+    expect(optionLabels).toEqual(['SuperAdmin'])
+    expect(wrapper.text()).toContain('This role is protected and cannot be changed.')
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(updateUser).toHaveBeenCalledWith(
+      2,
+      expect.objectContaining({
+        roleId: 1,
+      }),
+    )
+  })
+
+  it('shows an error when roles cannot be loaded', async () => {
+    vi.mocked(listAllRoles).mockRejectedValue(
+      new ApiClientError('Could not load roles.', 403, null),
+    )
+
+    const { wrapper } = await mountForm('/users/create')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Could not load roles.')
+  })
 })
 
 function inputValue(wrapper: ReturnType<typeof mount>, selector: string): string {
   const element = wrapper.get(selector).element
   if (!(element instanceof HTMLInputElement)) {
     throw new Error(`Expected ${selector} to be an input.`)
+  }
+
+  return element.value
+}
+
+function selectValue(wrapper: ReturnType<typeof mount>, selector: string): string {
+  const element = wrapper.get(selector).element
+  if (!(element instanceof HTMLSelectElement)) {
+    throw new Error(`Expected ${selector} to be a select.`)
   }
 
   return element.value

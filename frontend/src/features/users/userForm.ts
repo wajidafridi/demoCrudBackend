@@ -192,9 +192,9 @@ export function validateUserForm(
   }
 
   if (values.roleId.trim().length === 0) {
-    errors.roleId = 'Role id is required.'
+    errors.roleId = 'Role is required.'
   } else if (parseRoleId(values.roleId) == null) {
-    errors.roleId = 'Role id must be a whole number of 1 or greater.'
+    errors.roleId = 'Role is required.'
   }
 
   const addressError = optionalText(values.address, 'Address', LIMITS.address)

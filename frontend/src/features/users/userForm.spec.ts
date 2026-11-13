@@ -54,7 +54,7 @@ describe('validateUserForm', () => {
     expect(errors.email).toBe('Email is required.')
     expect(errors.userName).toBe('Username is required.')
     expect(errors.password).toBe('Password is required.')
-    expect(errors.roleId).toBe('Role id is required.')
+    expect(errors.roleId).toBe('Role is required.')
   })
 
   it('does not require a password when editing', () => {
@@ -77,7 +77,7 @@ describe('validateUserForm', () => {
 
     expect(errors.email).toBe('Enter a valid email address.')
     expect(errors.password).toBe('Password must be at least 6 characters.')
-    expect(errors.roleId).toBe('Role id must be a whole number of 1 or greater.')
+    expect(errors.roleId).toBe('Role is required.')
     expect(errors.phoneNumber).toBe('Phone number must be at most 50 characters.')
     expect(errors.dateOfBirth).toBe('Enter a valid date of birth.')
   })
