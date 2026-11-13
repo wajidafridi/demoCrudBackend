@@ -8,29 +8,29 @@ Backend setup, the database, JWT, and the API list are in the [repository README
 
 The app title is **Demo CRUD**. `npm run dev` serves a single home page that states the foundation is ready. Nothing in the UI calls the API.
 
-| Implemented | Pending |
-| --- | --- |
-| Vite + Vue 3 + TypeScript project | Login and logout screens |
-| `AppLayout` with a Home link | Access-token storage |
-| Route `/` → `HomeView` | Navigation guards |
-| Pinia created in `main.ts` | Pinia stores (the `stores/` folder is empty) |
-| Axios instance in `src/services/http.ts` | Auth header, 401 handling, and feature services (`authService`, `userService`, and so on) |
-| `ApiResponse` / `PagedApiResponse` types | User, role, and rights screens |
-| Tailwind CSS on the layout and home page | Automated frontend tests (no test runner is installed) |
+| Implemented                                               | Pending                                          |
+| --------------------------------------------------------- | ------------------------------------------------ |
+| Vite + Vue 3 + TypeScript project                         | Login and logout screens                         |
+| `AppLayout` with a Home link                              | Access-token storage                             |
+| Route `/` → `HomeView`                                    | Navigation guards                                |
+| Pinia auth store, JWT decode, sessionStorage token helper | Login UI, Axios interceptors, navigation guards  |
+| Axios instance in `src/services/http.ts`                  | Auth header, 401 handling, feature CRUD services |
+| `ApiResponse` / `PagedApiResponse` / auth types           | User, role, and rights screens                   |
+| Tailwind CSS, ESLint, Prettier, Vitest                    | Full E2E coverage                                |
 
 ## Technology stack
 
 Declared in `package.json` and wired in source:
 
-| Piece | Used for |
-| --- | --- |
-| Vue 3 | UI. Components use `<script setup lang="ts">`. |
-| TypeScript (strict) | `tsconfig.app.json` |
-| Vite 8 | Dev server and production build (`vite.config.ts`) |
-| Vue Router | `src/router/index.ts` |
-| Pinia | `createPinia()` in `src/main.ts`. No store modules yet. |
-| Axios | Shared client in `src/services/http.ts` |
-| Tailwind CSS 4 | `@tailwindcss/vite`. Global import in `src/style.css`. |
+| Piece               | Used for                                                |
+| ------------------- | ------------------------------------------------------- |
+| Vue 3               | UI. Components use `<script setup lang="ts">`.          |
+| TypeScript (strict) | `tsconfig.app.json`                                     |
+| Vite 8              | Dev server and production build (`vite.config.ts`)      |
+| Vue Router          | `src/router/index.ts`                                   |
+| Pinia               | `createPinia()` in `src/main.ts`. No store modules yet. |
+| Axios               | Shared client in `src/services/http.ts`                 |
+| Tailwind CSS 4      | `@tailwindcss/vite`. Global import in `src/style.css`.  |
 
 npm is the package manager (`package-lock.json`).
 
@@ -146,9 +146,9 @@ Import application code with the `@/` alias (`@` is `src`).
 
 `src/router/index.ts` uses `createWebHistory`. The only route is:
 
-| Path | Name | Layout | Page |
-| --- | --- | --- | --- |
-| `/` | `home` | `AppLayout` | `HomeView` |
+| Path | Name   | Layout      | Page       |
+| ---- | ------ | ----------- | ---------- |
+| `/`  | `home` | `AppLayout` | `HomeView` |
 
 There is no login route and no `beforeEach` guard. `App.vue` renders the matched route and nothing else.
 
@@ -207,9 +207,24 @@ The local seed username is `superadmin`. The local password is recorded with the
 - Keep a change easy to follow. This is a learning project; skip extra libraries and wrappers.
 - Longer notes live in the repo-root `.cursor/rules/` files whose names start with `frontend-` (architecture, TypeScript, API, auth, styling, quality).
 
+### Scripts
+
+| Command                | Purpose                      |
+| ---------------------- | ---------------------------- |
+| `npm run dev`          | Vite dev server              |
+| `npm run build`        | Typecheck + production build |
+| `npm test`             | Vitest (`src/**/*.spec.ts`)  |
+| `npm run lint`         | ESLint                       |
+| `npm run lint:fix`     | ESLint with auto-fix         |
+| `npm run format`       | Prettier write               |
+| `npm run format:check` | Prettier check               |
+
 Before you open a pull request that touches the UI or types:
 
 ```bash
+npm run lint
+npm run format:check
+npm test
 npm run build
 ```
 

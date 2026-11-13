@@ -8,7 +8,11 @@ alwaysApply: false
 
 ## Tooling
 
-- Follow the project ESLint + Prettier setup once scaffolded. Do not fight the formatter.
+- Follow the project ESLint (`eslint.config.js`) and Prettier (`.prettierrc.json`) setup. Do not fight the formatter.
+- After substantive frontend changes, run `npm run lint` and `npm run format:check` from `frontend/` (or `lint:fix` / `format` on files you touched).
+- Do not disable lint rules without a clear, documented reason.
+- Do not use `any` to bypass TypeScript errors.
+- Do not reformat or edit unrelated files just to satisfy formatting.
 - Remove dead code, unused imports, and unused dependencies in the same change when you touch a file.
 - Prefer explicit loading and error UI over silent failure or empty catch blocks.
 
@@ -34,6 +38,7 @@ try {
 
 ## Delivery bar
 
-- After each task, the frontend should still typecheck/build (once the Vite app exists).
+- After each task, the frontend should still typecheck/build (`npm run build`).
+- Run focused auth/unit tests with `npm test` when touching `jwt` / auth store behavior.
 - Do not leave broken imports, `any`-ridden stubs, or half-wired routes “for later” unless the task explicitly scopes a stub.
 - Prefer handling the `ApiResponse` `message` / `errors` fields for user-visible feedback.
