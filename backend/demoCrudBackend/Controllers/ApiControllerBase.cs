@@ -75,12 +75,13 @@ namespace DemoCrudBackend.Controllers
             string notFoundMessage,
             string validationMessage,
             string conflictMessage,
-            string forbiddenMessage)
+            string forbiddenMessage,
+            IReadOnlyDictionary<string, string[]>? errors = null)
         {
             return status switch
             {
                 WriteStatus.NotFound => ApiNotFound(message ?? notFoundMessage),
-                WriteStatus.ValidationFailed => ApiBadRequest(message ?? validationMessage),
+                WriteStatus.ValidationFailed => ApiBadRequest(message ?? validationMessage, errors),
                 WriteStatus.Conflict => ApiConflict(message ?? conflictMessage),
                 WriteStatus.Forbidden => ApiForbidden(message ?? forbiddenMessage),
                 _ => ApiForbidden(forbiddenMessage)

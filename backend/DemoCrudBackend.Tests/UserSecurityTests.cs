@@ -137,7 +137,7 @@ namespace DemoCrudBackend.Tests
                 lastName = "Lovelace",
                 email,
                 userName,
-                password = "Secret1",
+                password = "Secret12",
                 roleId = viewerRoleId
             });
 
@@ -155,7 +155,7 @@ namespace DemoCrudBackend.Tests
             Assert.False(stored.IsSystem);
             Assert.Equal(
                 PasswordVerificationResult.Success,
-                hasher.VerifyHashedPassword(stored, stored.PasswordHash, "Secret1"));
+                hasher.VerifyHashedPassword(stored, stored.PasswordHash, "Secret12"));
         }
 
         [Fact]
@@ -173,7 +173,7 @@ namespace DemoCrudBackend.Tests
                 lastName = "Hopper",
                 email = $"{userName}@example.com",
                 userName,
-                password = "Secret1",
+                password = "Secret12",
                 roleId = elevatedRoleId
             });
 
@@ -197,7 +197,7 @@ namespace DemoCrudBackend.Tests
                 lastName = "Hopper",
                 email = $"{userName}@example.com",
                 userName,
-                password = "Secret1",
+                password = "Secret12",
                 roleId = systemRoleId
             });
 

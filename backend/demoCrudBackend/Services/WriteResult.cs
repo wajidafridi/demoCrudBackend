@@ -17,6 +17,8 @@ namespace DemoCrudBackend.Services
 
         public string? Message { get; private init; }
 
+        public IReadOnlyDictionary<string, string[]>? Errors { get; private init; }
+
         public static WriteResult<T> Success(T? data = default)
         {
             return new WriteResult<T>
@@ -44,12 +46,15 @@ namespace DemoCrudBackend.Services
             };
         }
 
-        public static WriteResult<T> ValidationFailed(string message)
+        public static WriteResult<T> ValidationFailed(
+            string message,
+            IReadOnlyDictionary<string, string[]>? errors = null)
         {
             return new WriteResult<T>
             {
                 Status = WriteStatus.ValidationFailed,
-                Message = message
+                Message = message,
+                Errors = errors
             };
         }
 

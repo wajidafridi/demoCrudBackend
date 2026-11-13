@@ -31,6 +31,7 @@ builder.Services.AddOpenApi(options =>
 });
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IRightService, RightService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

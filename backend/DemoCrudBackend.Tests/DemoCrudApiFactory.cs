@@ -36,7 +36,8 @@ namespace DemoCrudBackend.Tests
 
         public DemoCrudApiFactory()
         {
-            _connection = new SqliteConnection(ConnectionString);
+            var dataSource = $"DemoCrudTests-{Guid.NewGuid():N}";
+            _connection = new SqliteConnection($"Data Source={dataSource};Mode=Memory;Cache=Shared");
             _connection.Open();
         }
 

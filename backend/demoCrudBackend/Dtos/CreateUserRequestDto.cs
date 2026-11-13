@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using DemoCrudBackend.Common;
 
 namespace DemoCrudBackend.Dtos
 {
@@ -22,7 +23,7 @@ namespace DemoCrudBackend.Dtos
         public string UserName { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(100, MinimumLength = 6)]
+        [StringLength(PasswordRules.MaximumLength, MinimumLength = PasswordRules.MinimumLength)]
         public string Password { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue)]

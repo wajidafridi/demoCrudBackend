@@ -1,6 +1,6 @@
 ---
 description: JWT auth, permission policies, and SuperAdmin IsSystem protection
-globs: backend/demoCrudBackend/Authorization/**/*.cs,backend/demoCrudBackend/Services/Auth*.cs,backend/demoCrudBackend/Services/Token*.cs,backend/demoCrudBackend/Services/User*.cs,backend/demoCrudBackend/Services/Role*.cs,backend/demoCrudBackend/Services/Right*.cs,backend/demoCrudBackend/Controllers/Auth*.cs,backend/demoCrudBackend/Controllers/Users*.cs,backend/demoCrudBackend/Controllers/Roles*.cs,backend/demoCrudBackend/Controllers/Rights*.cs
+globs: backend/demoCrudBackend/Authorization/**/*.cs,backend/demoCrudBackend/Services/Auth*.cs,backend/demoCrudBackend/Services/Account*.cs,backend/demoCrudBackend/Services/Token*.cs,backend/demoCrudBackend/Services/User*.cs,backend/demoCrudBackend/Services/Role*.cs,backend/demoCrudBackend/Services/Right*.cs,backend/demoCrudBackend/Controllers/Auth*.cs,backend/demoCrudBackend/Controllers/Account*.cs,backend/demoCrudBackend/Controllers/Users*.cs,backend/demoCrudBackend/Controllers/Roles*.cs,backend/demoCrudBackend/Controllers/Rights*.cs
 alwaysApply: false
 ---
 
@@ -8,7 +8,10 @@ alwaysApply: false
 
 ## JWT
 
-- Login is public (`[AllowAnonymous]`). Other APIs require authentication + permission policies.
+- Login is public (`[AllowAnonymous]`). Account self-service (`/api/account`) requires authentication only. Other APIs require authentication + permission policies.
+- Account routes take the user id from `CallerContext.UserId` (`NameIdentifier`). They do not accept a user id, and they do not require `User_View` or `User_Edit`.
+- Changing a password does not revoke access tokens. Tokens remain valid until they expire.
+- New passwords on user creation and account password change are 8 to 100 characters. No other complexity rules are applied.
 - Token claims: `NameIdentifier`, `Name`, `Role`, repeated `"permission"` claims from RoleRights.
 - Permissions are a **snapshot until token expiry** (~30 min). Service-layer rules still protect system resources.
 - Pass `CancellationToken` through login, user, role, and right service methods.
