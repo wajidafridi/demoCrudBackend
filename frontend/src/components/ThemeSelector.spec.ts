@@ -3,105 +3,151 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 import ThemeSelector from '@/components/ThemeSelector.vue'
-import { THEME_STORAGE_KEY } from '@/theme/theme'
+import { COLOR_SCHEME_QUERY, THEME_STORAGE_KEY } from '@/theme/theme'
 import { useTheme } from '@/theme/useTheme'
-import type { ThemePreference } from '@/theme/theme'
 
-function selectValue(wrapper: ReturnType<typeof mount>): string {
-  const element = wrapper.get('select').element
-  if (!(element instanceof HTMLSelectElement)) {
-    throw new Error('Theme control is not a select.')
+function createSchemeMedia(initialMatches: boolean) {
+  const listeners = new Set<(event: MediaQueryListEvent) => void>()
+  const media = {
+    matches: initialMatches,
+    media: COLOR_SCHEME_QUERY,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    dispatchEvent() {
+      return false
+    },
+    addEventListener(_type: string, listener: EventListenerOrEventListenerObject) {
+      if (typeof listener === 'function') {
+        listeners.add(listener as (event: MediaQueryListEvent) => void)
+      }
+    },
+    removeEventListener(_type: string, listener: EventListenerOrEventListenerObject) {
+      if (typeof listener === 'function') {
+        listeners.delete(listener as (event: MediaQueryListEvent) => void)
+      }
+    },
+  } as MediaQueryList
+
+  return {
+    matchMedia: () => media,
+    setMatches(matches: boolean) {
+      media.matches = matches
+      const event = { matches, media: COLOR_SCHEME_QUERY } as MediaQueryListEvent
+      for (const listener of [...listeners]) {
+        listener(event)
+      }
+    },
   }
+}
 
-  return element.value
+const scheme = createSchemeMedia(false)
+
+function checked(wrapper: ReturnType<typeof mount>, label: string): string | undefined {
+  return wrapper.get(`[aria-label="${label}"]`).attributes('aria-checked')
 }
 
 describe('ThemeSelector', () => {
   beforeEach(() => {
+    vi.stubGlobal('matchMedia', scheme.matchMedia)
     localStorage.clear()
+    scheme.setMatches(false)
     useTheme().setPreference('system')
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
     useTheme().setPreference('system')
+    scheme.setMatches(false)
     localStorage.removeItem(THEME_STORAGE_KEY)
     document.documentElement.removeAttribute('data-theme')
     document.documentElement.removeAttribute('data-theme-preference')
+    vi.unstubAllGlobals()
   })
 
-  it('displays the current preference', () => {
-    useTheme().setPreference('dark')
+  it('selects Sun for a fresh system preference when the OS is light', () => {
+    localStorage.removeItem(THEME_STORAGE_KEY)
     const wrapper = mount(ThemeSelector)
 
-    expect(wrapper.get('label').text()).toContain('Theme')
-    expect(wrapper.get('select').text()).toContain('Light')
-    expect(wrapper.get('select').text()).toContain('Dark')
-    expect(wrapper.get('select').text()).toContain('System')
-    expect(selectValue(wrapper)).toBe('dark')
+    expect(useTheme().preference.value).toBe('system')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+    expect(checked(wrapper, 'Light theme')).toBe('true')
+    expect(checked(wrapper, 'Dark theme')).toBe('false')
+    expect(wrapper.find('select').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('System')
+    expect(wrapper.get('[role="radiogroup"]').attributes('aria-label')).toBe('Theme')
   })
 
-  it('selecting Light calls the theme controller and shows Light', async () => {
-    const theme = useTheme()
-    const setPreference = vi.spyOn(theme, 'setPreference')
+  it('selects Moon for a fresh system preference when the OS is dark', async () => {
+    localStorage.removeItem(THEME_STORAGE_KEY)
+    scheme.setMatches(true)
+    await nextTick()
     const wrapper = mount(ThemeSelector)
 
-    await wrapper.get('select').setValue('light')
-
-    expect(setPreference).toHaveBeenCalledWith('light')
-    expect(theme.preference.value).toBe('light')
-    expect(selectValue(wrapper)).toBe('light')
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+    expect(useTheme().preference.value).toBe('system')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+    expect(checked(wrapper, 'Dark theme')).toBe('true')
+    expect(checked(wrapper, 'Light theme')).toBe('false')
   })
 
-  it('selecting Dark calls the theme controller and shows Dark', async () => {
-    const theme = useTheme()
-    const setPreference = vi.spyOn(theme, 'setPreference')
+  it('updates the selected icon when the OS theme changes during system preference', async () => {
     const wrapper = mount(ThemeSelector)
+    expect(checked(wrapper, 'Light theme')).toBe('true')
 
-    await wrapper.get('select').setValue('dark')
+    scheme.setMatches(true)
+    await nextTick()
 
-    expect(setPreference).toHaveBeenCalledWith('dark')
-    expect(theme.preference.value).toBe('dark')
-    expect(selectValue(wrapper)).toBe('dark')
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
-  })
-
-  it('selecting System calls the theme controller and shows System', async () => {
-    const theme = useTheme()
-    theme.setPreference('light')
-    const setPreference = vi.spyOn(theme, 'setPreference')
-    const wrapper = mount(ThemeSelector)
-
-    await wrapper.get('select').setValue('system')
-
-    expect(setPreference).toHaveBeenCalledWith('system')
-    expect(theme.preference.value).toBe('system')
-    expect(selectValue(wrapper)).toBe('system')
+    expect(useTheme().preference.value).toBe('system')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')
+    expect(checked(wrapper, 'Dark theme')).toBe('true')
+    expect(checked(wrapper, 'Light theme')).toBe('false')
   })
 
-  it('reflects the preference after each selection', async () => {
+  it('saves Light and keeps it when the OS later changes', async () => {
     const wrapper = mount(ThemeSelector)
 
-    await wrapper.get('select').setValue('light')
-    expect(selectValue(wrapper)).toBe('light')
+    await wrapper.get('[aria-label="Light theme"]').trigger('click')
 
-    await wrapper.get('select').setValue('dark')
-    expect(selectValue(wrapper)).toBe('dark')
+    expect(useTheme().preference.value).toBe('light')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+    expect(checked(wrapper, 'Light theme')).toBe('true')
 
-    await wrapper.get('select').setValue('system')
-    expect(selectValue(wrapper)).toBe('system')
+    scheme.setMatches(true)
+    await nextTick()
+
+    expect(useTheme().preference.value).toBe('light')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+    expect(checked(wrapper, 'Light theme')).toBe('true')
   })
 
-  it('stays synchronized when the preference changes outside the selector', async () => {
+  it('saves Dark and keeps it when the OS later changes', async () => {
     const wrapper = mount(ThemeSelector)
-    const preferences: ThemePreference[] = ['light', 'dark', 'system']
 
-    for (const preference of preferences) {
-      useTheme().setPreference(preference)
-      await nextTick()
-      expect(selectValue(wrapper)).toBe(preference)
-    }
+    await wrapper.get('[aria-label="Dark theme"]').trigger('click')
+
+    expect(useTheme().preference.value).toBe('dark')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+    expect(checked(wrapper, 'Dark theme')).toBe('true')
+
+    scheme.setMatches(false)
+    await nextTick()
+
+    expect(useTheme().preference.value).toBe('dark')
+    expect(checked(wrapper, 'Dark theme')).toBe('true')
+    expect(checked(wrapper, 'Light theme')).toBe('false')
+  })
+
+  it('moves between Light and Dark with the keyboard', async () => {
+    const wrapper = mount(ThemeSelector)
+    const group = wrapper.get('[role="radiogroup"]')
+
+    await group.trigger('keydown', { key: 'ArrowRight' })
+    expect(useTheme().preference.value).toBe('dark')
+    expect(checked(wrapper, 'Dark theme')).toBe('true')
+
+    await group.trigger('keydown', { key: 'ArrowLeft' })
+    expect(useTheme().preference.value).toBe('light')
+    expect(checked(wrapper, 'Light theme')).toBe('true')
+    expect(wrapper.get('[aria-label="Light theme"]').attributes('title')).toBe('Light theme')
+    expect(wrapper.get('[aria-label="Dark theme"]').attributes('title')).toBe('Dark theme')
   })
 })

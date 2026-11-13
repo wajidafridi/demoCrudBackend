@@ -179,7 +179,9 @@ describe('application shell', () => {
     await header.get('[aria-label="Open navigation"]').trigger('click')
     expect(header.emitted('openMobile')).toHaveLength(1)
 
-    await header.get('button.inline-flex').trigger('click')
+    const logout = header.findAll('button').find((button) => button.text().includes('Log out'))
+    expect(logout).toBeDefined()
+    await logout?.trigger('click')
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('login')

@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { getAccount } from '@/services/accountService'
 import { ApiClientError } from '@/services/apiError'
 import {
   assignRoleRights,
@@ -17,6 +18,10 @@ import type { RightResponse } from '@/types/right'
 import type { RoleResponse } from '@/types/role'
 import { JwtClaimNames } from '@/utils/jwt'
 import RightsView from '@/views/RightsView.vue'
+
+vi.mock('@/services/accountService', () => ({
+  getAccount: vi.fn(),
+}))
 
 vi.mock('@/services/roleService', () => ({
   listAllRoles: vi.fn(),
@@ -96,11 +101,15 @@ describe('RightsView', () => {
     clearAccessToken()
     setActivePinia(createPinia())
     installSession(['Role_View', 'Right_View', 'RoleRight_Assign'])
+    vi.mocked(getAccount).mockReset()
     vi.mocked(listAllRoles).mockReset()
     vi.mocked(getRoleRights).mockReset()
     vi.mocked(listAllRights).mockReset()
     vi.mocked(assignRoleRights).mockReset()
     vi.mocked(removeRoleRights).mockReset()
+    vi.mocked(getAccount).mockResolvedValue({ roleId: 50 } as Awaited<
+      ReturnType<typeof getAccount>
+    >)
     vi.mocked(listAllRoles).mockResolvedValue(roles)
     vi.mocked(getRoleRights).mockResolvedValue(assigned)
     vi.mocked(listAllRights).mockResolvedValue(catalog)
@@ -381,7 +390,8 @@ describe('RightsView', () => {
     expect(available.text()).toContain('User_Create')
   })
 
-  it('asks before removing rights from the current user role', async () => {
+  it('loads the signed-in role id from the account API and confirms that role', async () => {
+    vi.mocked(getAccount).mockResolvedValue({ roleId: 2 } as Awaited<ReturnType<typeof getAccount>>)
     vi.mocked(listAllRoles).mockResolvedValue([{ id: 2, name: 'Editors' }])
     vi.mocked(removeRoleRights).mockResolvedValue([])
 
@@ -392,6 +402,7 @@ describe('RightsView', () => {
       .setValue(true)
     await panel(wrapper, 'assigned-rights-heading').get('button').trigger('click')
 
+    expect(getAccount).toHaveBeenCalledTimes(1)
     expect(removeRoleRights).not.toHaveBeenCalled()
     const dialog = wrapper.get('[role="dialog"]')
     expect(dialog.text()).toContain('your own role')
@@ -404,15 +415,12 @@ describe('RightsView', () => {
   })
 
   it('removes own-role rights only after confirmation', async () => {
+    vi.mocked(getAccount).mockResolvedValue({ roleId: 8 } as Awaited<ReturnType<typeof getAccount>>)
     vi.mocked(listAllRoles).mockResolvedValue([{ id: 8, name: 'Auditors' }])
     vi.mocked(removeRoleRights).mockResolvedValue([])
     const { wrapper } = await mountPage('/rights?roleId=8')
     await flushPromises()
-    const user = useAuthStore().user
-    expect(user).not.toBeNull()
-    if (user != null) {
-      user.roleId = 8
-    }
+    expect(useAuthStore().user?.roleId).toBeNull()
 
     await panel(wrapper, 'assigned-rights-heading')
       .get('[aria-label="Select User_View"]')
@@ -442,6 +450,105 @@ describe('RightsView', () => {
     await flushPromises()
 
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(removeRoleRights).toHaveBeenCalledWith(2, { rightIds: [1] })
+  })
+
+  it('blocks removal while the account role is still loading', async () => {
+    const account = deferred<Awaited<ReturnType<typeof getAccount>>>()
+    vi.mocked(getAccount).mockReturnValue(account.promise)
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    const assignedPanel = panel(wrapper, 'assigned-rights-heading')
+    await assignedPanel.get('[aria-label="Select User_View"]').setValue(true)
+    const button = assignedPanel.get('button')
+    expect((button.element as HTMLButtonElement).disabled).toBe(true)
+    await button.trigger('click')
+
+    expect(removeRoleRights).not.toHaveBeenCalled()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    account.resolve({ roleId: 50 } as Awaited<ReturnType<typeof getAccount>>)
+    await flushPromises()
+    expect((assignedPanel.get('button').element as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('asks for confirmation when the account API fails', async () => {
+    vi.mocked(getAccount).mockRejectedValue(
+      new ApiClientError('Could not load your account.', 500, null),
+    )
+    vi.mocked(removeRoleRights).mockResolvedValue([])
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    await panel(wrapper, 'assigned-rights-heading')
+      .get('[aria-label="Select User_View"]')
+      .setValue(true)
+    await panel(wrapper, 'assigned-rights-heading').get('button').trigger('click')
+
+    expect(removeRoleRights).not.toHaveBeenCalled()
+    const dialog = wrapper.get('[role="dialog"]')
+    expect(dialog.text()).toContain('could not be verified')
+
+    const confirm = dialog.findAll('button').find((button) => button.text() === 'Remove rights')
+    await confirm?.trigger('click')
+    await flushPromises()
+    expect(removeRoleRights).toHaveBeenCalledWith(2, { rightIds: [1] })
+  })
+
+  it('does not let a role change bypass an open removal confirmation', async () => {
+    vi.mocked(getAccount).mockResolvedValue({ roleId: 2 } as Awaited<ReturnType<typeof getAccount>>)
+    vi.mocked(removeRoleRights).mockResolvedValue([])
+
+    const { wrapper, router } = await mountPage('/rights?roleId=2')
+    await flushPromises()
+    await panel(wrapper, 'assigned-rights-heading')
+      .get('[aria-label="Select User_View"]')
+      .setValue(true)
+    await panel(wrapper, 'assigned-rights-heading').get('button').trigger('click')
+    expect(wrapper.get('[role="dialog"]').text()).toContain('your own role')
+
+    await router.push({ name: 'rights', query: { roleId: '3' } })
+    await flushPromises()
+
+    expect(removeRoleRights).not.toHaveBeenCalled()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect((wrapper.get('[aria-label="Role"]').element as HTMLSelectElement).value).toBe('3')
+
+    await panel(wrapper, 'assigned-rights-heading')
+      .get('[aria-label="Select User_View"]')
+      .setValue(true)
+    await panel(wrapper, 'assigned-rights-heading').get('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(removeRoleRights).toHaveBeenCalledWith(3, { rightIds: [1] })
+  })
+
+  it('keeps an in-flight removal on the role that was confirmed', async () => {
+    vi.mocked(getAccount).mockResolvedValue({ roleId: 2 } as Awaited<ReturnType<typeof getAccount>>)
+    const request = deferred<RightResponse[]>()
+    vi.mocked(removeRoleRights).mockReturnValue(request.promise)
+
+    const { wrapper, router } = await mountPage('/rights?roleId=2')
+    await flushPromises()
+    await panel(wrapper, 'assigned-rights-heading')
+      .get('[aria-label="Select User_View"]')
+      .setValue(true)
+    await panel(wrapper, 'assigned-rights-heading').get('button').trigger('click')
+    const confirm = wrapper
+      .get('[role="dialog"]')
+      .findAll('button')
+      .find((button) => button.text() === 'Remove rights')
+    await confirm?.trigger('click')
+    expect(removeRoleRights).toHaveBeenCalledWith(2, { rightIds: [1] })
+
+    await router.push({ name: 'rights', query: { roleId: '3' } })
+    await flushPromises()
+    request.resolve([])
+    await flushPromises()
+
+    expect(removeRoleRights).toHaveBeenCalledTimes(1)
     expect(removeRoleRights).toHaveBeenCalledWith(2, { rightIds: [1] })
   })
 

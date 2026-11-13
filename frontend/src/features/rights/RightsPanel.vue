@@ -21,6 +21,7 @@ const props = defineProps<{
   loading: boolean
   error: string | null
   tone?: 'accent' | 'danger'
+  actionDisabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -138,7 +139,9 @@ function onSearch(event: Event): void {
             ? 'border border-border bg-surface text-danger hover:bg-surface-secondary'
             : 'bg-accent text-accent-foreground hover:bg-accent-hover'
         "
-        :disabled="busy || loading || error != null || selectedIds.length === 0"
+        :disabled="
+          busy || loading || error != null || actionDisabled === true || selectedIds.length === 0
+        "
         @click="emit('action')"
       >
         {{ pending ? pendingLabel : actionLabel }}

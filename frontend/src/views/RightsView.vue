@@ -6,6 +6,7 @@ import AlertBanner from '@/components/AlertBanner.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import RightsPanel from '@/features/rights/RightsPanel.vue'
 import { parseRoleId } from '@/features/roles/roleForm'
+import { getAccount } from '@/services/accountService'
 import { toApiClientError } from '@/services/apiError'
 import {
   assignRoleRights,
@@ -45,6 +46,10 @@ const assignedSelection = ref<number[]>([])
 const busy = ref(false)
 const pendingAction = ref<'assign' | 'remove' | null>(null)
 const confirmOpen = ref(false)
+const confirmRoleId = ref<number | null>(null)
+const confirmReason = ref<'own' | 'unknown' | null>(null)
+const accountRoleId = ref<number | null>(null)
+const accountStatus = ref<'loading' | 'ready' | 'error'>('loading')
 
 let loadGeneration = 0
 
@@ -83,8 +88,15 @@ const assignedEmptyMessage = computed(() =>
     : 'No assigned rights are visible for this role.',
 )
 
+const removeConfirmTitle = computed(() =>
+  confirmReason.value === 'unknown' ? 'Confirm rights removal' : 'Remove your own rights?',
+)
+
 const removeConfirmMessage = computed(() => {
   const name = selectedRole.value?.name ?? 'this role'
+  if (confirmReason.value === 'unknown') {
+    return `Your role could not be verified, so this removal needs confirmation. Removing rights from ${name} may remove your own access after you sign in again. ${TOKEN_NOTE}`
+  }
   return `You are about to remove rights from ${name}, which is your own role. You could lose access after you sign in again. ${TOKEN_NOTE}`
 })
 
@@ -105,15 +117,8 @@ function filterRights(rights: RightResponse[], query: string): RightResponse[] {
   return sorted.filter((right) => right.name.toLocaleLowerCase().includes(needle))
 }
 
-function isOwnRole(role: RoleResponse): boolean {
-  const current = authStore.user
-  if (current == null) {
-    return false
-  }
-  if (current.roleId != null && current.roleId === role.id) {
-    return true
-  }
-  return current.roleName != null && current.roleName === role.name
+function ownsRole(roleId: number): boolean {
+  return accountStatus.value === 'ready' && accountRoleId.value === roleId
 }
 
 function syncRoleFromRoute(): void {
@@ -133,6 +138,19 @@ function syncRoleFromRoute(): void {
   selectedRoleId.value = next.id
   if (queryValue() !== String(next.id)) {
     void router.replace({ name: 'rights', query: { roleId: String(next.id) } })
+  }
+}
+
+async function loadAccountRole(): Promise<void> {
+  accountStatus.value = 'loading'
+  accountRoleId.value = null
+  try {
+    const profile = await getAccount()
+    accountRoleId.value = profile.roleId
+    accountStatus.value = 'ready'
+  } catch {
+    accountRoleId.value = null
+    accountStatus.value = 'error'
   }
 }
 
@@ -195,6 +213,8 @@ function resetSelections(): void {
   actionError.value = null
   successMessage.value = null
   confirmOpen.value = false
+  confirmRoleId.value = null
+  confirmReason.value = null
 }
 
 function selectionFor(panel: 'available' | 'assigned') {
@@ -270,18 +290,30 @@ async function assignSelected(): Promise<void> {
   }
 }
 
+function closeConfirm(): void {
+  if (busy.value) {
+    return
+  }
+  confirmOpen.value = false
+  confirmRoleId.value = null
+  confirmReason.value = null
+}
+
 function requestRemove(): void {
   const role = selectedRole.value
   if (
     role == null ||
     controlsLocked.value ||
+    accountStatus.value === 'loading' ||
     !canChange.value ||
     assignedSelection.value.length === 0 ||
     assignedError.value != null
   ) {
     return
   }
-  if (isOwnRole(role)) {
+  if (accountStatus.value === 'error' || ownsRole(role.id)) {
+    confirmRoleId.value = role.id
+    confirmReason.value = accountStatus.value === 'error' ? 'unknown' : 'own'
     confirmOpen.value = true
     return
   }
@@ -293,10 +325,15 @@ async function removeSelected(): Promise<void> {
   if (
     roleId == null ||
     busy.value ||
+    accountStatus.value === 'loading' ||
     !canChange.value ||
     assignedSelection.value.length === 0 ||
     assignedError.value != null
   ) {
+    return
+  }
+  if (confirmRoleId.value != null && confirmRoleId.value !== roleId) {
+    closeConfirm()
     return
   }
 
@@ -307,8 +344,13 @@ async function removeSelected(): Promise<void> {
   const rightIds = [...assignedSelection.value]
   try {
     await removeRoleRights(roleId, { rightIds })
+    if (selectedRoleId.value !== roleId) {
+      return
+    }
     assignedSelection.value = []
     confirmOpen.value = false
+    confirmRoleId.value = null
+    confirmReason.value = null
     successMessage.value = `Rights removed. ${TOKEN_NOTE}`
     await loadRights(roleId)
   } catch (error: unknown) {
@@ -337,6 +379,7 @@ watch(selectedRoleId, (roleId, previous) => {
 
 onMounted(() => {
   void loadRoles()
+  void loadAccountRole()
 })
 
 onUnmounted(() => {
@@ -435,6 +478,7 @@ onUnmounted(() => {
         :busy="controlsLocked"
         :loading="rightsLoading"
         :error="assignedError"
+        :action-disabled="accountStatus === 'loading'"
         @update:query="assignedQuery = $event"
         @toggle="toggle('assigned', $event)"
         @toggle-all="toggleAll('assigned', filteredAssigned)"
@@ -444,13 +488,13 @@ onUnmounted(() => {
 
     <ConfirmDialog
       :open="confirmOpen"
-      title="Remove your own rights?"
+      :title="removeConfirmTitle"
       :message="removeConfirmMessage"
       confirm-label="Remove rights"
       busy-label="Removing…"
       :busy="busy"
       @confirm="removeSelected"
-      @cancel="confirmOpen = false"
+      @cancel="closeConfirm"
     />
   </div>
 </template>
