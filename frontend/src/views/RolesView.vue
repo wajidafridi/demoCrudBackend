@@ -6,7 +6,7 @@ import AlertBanner from '@/components/AlertBanner.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PaginationControls from '@/components/PaginationControls.vue'
 import { toApiClientError } from '@/services/apiError'
-import { DEFAULT_PAGE_SIZE } from '@/constants/pagination'
+import { DEFAULT_PAGE_SIZE, TABLE_SCROLL_CLASS } from '@/constants/pagination'
 import { deleteRole, listRoles } from '@/services/roleService'
 import { useAuthStore } from '@/stores/authStore'
 import type { PaginationMetadata } from '@/types/api'
@@ -157,8 +157,8 @@ async function confirmDelete(): Promise<void> {
 </script>
 
 <template>
-  <section class="space-y-4">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <section class="flex min-h-0 flex-col gap-4">
+    <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-sm text-slate-600">Browse roles and change the ones your permissions allow.</p>
       <RouterLink
         v-if="canCreate"
@@ -192,12 +192,12 @@ async function confirmDelete(): Promise<void> {
       <p class="mt-1 text-sm text-slate-600">There are no roles on this page.</p>
     </div>
 
-    <div v-else-if="roles.length > 0" class="space-y-4">
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
+    <div v-else-if="roles.length > 0" class="flex min-h-0 flex-col gap-4">
+      <div class="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div :class="TABLE_SCROLL_CLASS">
           <table class="w-full min-w-[480px] text-left text-sm" aria-label="Roles">
             <thead
-              class="border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase"
+              class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase"
             >
               <tr>
                 <th scope="col" class="px-4 py-3 font-semibold">Name</th>
@@ -243,6 +243,7 @@ async function confirmDelete(): Promise<void> {
       </div>
       <PaginationControls
         v-if="pagination && pagination.totalCount > 0"
+        class="shrink-0"
         :pagination="pagination"
         :page-size="pageSize"
         :disabled="loading"

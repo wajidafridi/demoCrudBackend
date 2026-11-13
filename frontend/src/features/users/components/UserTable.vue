@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import { TABLE_SCROLL_CLASS } from '@/constants/pagination'
 import type { UserResponse } from '@/types/user'
 
 const props = defineProps<{
@@ -39,10 +40,10 @@ function phoneLabel(user: UserResponse): string {
 </script>
 
 <template>
-  <div class="overflow-x-auto">
+  <div :class="TABLE_SCROLL_CLASS">
     <table class="min-w-[720px] w-full text-left text-sm" aria-label="Users">
       <thead
-        class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500"
+        class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs tracking-wide text-slate-500 uppercase"
       >
         <tr>
           <th scope="col" class="px-4 py-3 font-semibold">Name</th>

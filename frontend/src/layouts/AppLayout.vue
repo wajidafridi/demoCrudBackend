@@ -28,7 +28,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-slate-100">
+  <div class="flex h-dvh overflow-hidden bg-slate-100">
     <AppSidebar
       :collapsed="sidebarCollapsed"
       :mobile-open="mobileOpen"
@@ -36,10 +36,10 @@ watch(
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
     />
 
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
       <AppHeader :page-title="pageTitle" @open-mobile="mobileOpen = true" />
 
-      <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+      <main class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
         <RouterView />
       </main>
     </div>

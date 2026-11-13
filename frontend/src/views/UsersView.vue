@@ -158,8 +158,8 @@ async function confirmDelete(): Promise<void> {
 </script>
 
 <template>
-  <section class="space-y-4">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <section class="flex min-h-0 flex-col gap-4">
+    <div class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-sm text-slate-600">
         Browse accounts and manage the users your role allows you to change.
       </p>
@@ -195,12 +195,13 @@ async function confirmDelete(): Promise<void> {
       <p class="mt-1 text-sm text-slate-600">There are no users on this page.</p>
     </div>
 
-    <div v-else-if="users.length > 0" class="space-y-4">
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div v-else-if="users.length > 0" class="flex min-h-0 flex-col gap-4">
+      <div class="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <UserTable :users="users" :can-edit="canEdit" :can-delete="canDelete" @delete="askDelete" />
       </div>
       <PaginationControls
         v-if="pagination && pagination.totalCount > 0"
+        class="shrink-0"
         :pagination="pagination"
         :page-size="pageSize"
         :disabled="loading"
