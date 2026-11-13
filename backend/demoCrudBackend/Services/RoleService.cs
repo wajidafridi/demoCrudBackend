@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using DemoCrudBackend.Authorization;
 using DemoCrudBackend.Common;
 using DemoCrudBackend.Data;
 using DemoCrudBackend.Dtos;
@@ -271,7 +272,7 @@ namespace DemoCrudBackend.Services
                     "One or more rights do not exist.");
             }
 
-            if (rights.Any(right => !callerPermissions.Contains(right.Name)))
+            if (RoleAssignment.ExceedsCallerPermissions(rights.Select(right => right.Name), callerPermissions))
             {
                 logger.LogWarning(
                     "Denied role-right change on role {RoleId} by caller {CallerUserId} because a right is outside the caller permissions.",

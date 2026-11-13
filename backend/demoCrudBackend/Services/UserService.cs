@@ -19,6 +19,7 @@ namespace DemoCrudBackend.Services
             new UserResponseDto
             {
                 Id = user.Id,
+                IsSystem = user.IsSystem,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email,
@@ -70,8 +71,10 @@ namespace DemoCrudBackend.Services
         public async Task<WriteResult<UserResponseDto>> AddUserAsync(
             CreateUserRequestDto userRequest,
             int? callerUserId,
+            IReadOnlySet<string> callerPermissions,
             CancellationToken cancellationToken = default)
         {
+            callerPermissions ??= new HashSet<string>(StringComparer.Ordinal);
             if (await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken) is null)
             {
                 logger.LogWarning(
@@ -105,6 +108,16 @@ namespace DemoCrudBackend.Services
                     callerUserId,
                     userRequest.RoleId);
                 return WriteResult<UserResponseDto>.Forbidden("You are not allowed to assign the system role.");
+            }
+
+            if (await RoleExceedsCallerPermissionsAsync(requestedRole.Id, callerPermissions, cancellationToken))
+            {
+                logger.LogWarning(
+                    "Denied user creation. Caller {CallerUserId} cannot assign role {RequestedRoleId} because it exceeds their permissions.",
+                    callerUserId,
+                    requestedRole.Id);
+                return WriteResult<UserResponseDto>.Forbidden(
+                    "You cannot assign a role that includes permissions you do not have.");
             }
 
             var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: null, cancellationToken);
@@ -146,8 +159,11 @@ namespace DemoCrudBackend.Services
             int id,
             UpdateUserRequestDto userRequest,
             int? callerUserId,
+            IReadOnlySet<string> callerPermissions,
             CancellationToken cancellationToken = default)
         {
+            callerPermissions ??= new HashSet<string>(StringComparer.Ordinal);
+
             var callerId = await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken);
             if (callerId is null)
             {
@@ -155,6 +171,12 @@ namespace DemoCrudBackend.Services
                     "Denied user update because caller {CallerUserId} could not be resolved.",
                     callerUserId);
                 return WriteResult<UserResponseDto>.Forbidden("You are not allowed to perform this user operation.");
+            }
+
+            if (RoleAssignment.IsSelfUpdate(callerId.Value, id))
+            {
+                logger.LogWarning("Denied self-update of user {UserId}.", id);
+                return WriteResult<UserResponseDto>.Forbidden("You cannot update your own account.");
             }
 
             var userName = NormalizeUserName(userRequest.UserName);
@@ -185,25 +207,14 @@ namespace DemoCrudBackend.Services
 
             if (existingUser.IsSystem)
             {
-                if (callerId.Value != existingUser.Id)
-                {
-                    logger.LogWarning(
-                        "Denied update of system user {UserId} by caller {CallerUserId}.",
-                        id,
-                        callerId);
-                    return WriteResult<UserResponseDto>.Forbidden("You are not allowed to modify the system user.");
-                }
-
-                if (RoleAssignment.IsRoleChange(existingUser.RoleId, userRequest.RoleId))
-                {
-                    logger.LogWarning(
-                        "Denied role change on system user {UserId} by caller {CallerUserId}.",
-                        id,
-                        callerId);
-                    return WriteResult<UserResponseDto>.Forbidden("The system user role cannot be changed.");
-                }
+                logger.LogWarning(
+                    "Denied update of system user {UserId} by caller {CallerUserId}.",
+                    id,
+                    callerId);
+                return WriteResult<UserResponseDto>.Forbidden("You are not allowed to modify the system user.");
             }
-            else if (requestedRole.IsSystem)
+
+            if (requestedRole.IsSystem)
             {
                 logger.LogWarning(
                     "Denied assignment of system role {RequestedRoleId} to user {UserId} by caller {CallerUserId}.",
@@ -211,6 +222,28 @@ namespace DemoCrudBackend.Services
                     id,
                     callerId);
                 return WriteResult<UserResponseDto>.Forbidden("You are not allowed to assign the system role.");
+            }
+
+            if (await RoleExceedsCallerPermissionsAsync(existingUser.RoleId, callerPermissions, cancellationToken))
+            {
+                logger.LogWarning(
+                    "Denied update of user {UserId} by caller {CallerUserId} because current role {RoleId} exceeds their permissions.",
+                    id,
+                    callerId,
+                    existingUser.RoleId);
+                return WriteResult<UserResponseDto>.Forbidden(
+                    "You cannot edit a user whose role includes permissions you do not have.");
+            }
+
+            if (await RoleExceedsCallerPermissionsAsync(requestedRole.Id, callerPermissions, cancellationToken))
+            {
+                logger.LogWarning(
+                    "Denied update of user {UserId} by caller {CallerUserId} because requested role {RoleId} exceeds their permissions.",
+                    id,
+                    callerId,
+                    requestedRole.Id);
+                return WriteResult<UserResponseDto>.Forbidden(
+                    "You cannot assign a role that includes permissions you do not have.");
             }
 
             var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: id, cancellationToken);
@@ -270,6 +303,20 @@ namespace DemoCrudBackend.Services
             context.Users.Remove(userToDelete);
             await context.SaveChangesAsync(cancellationToken);
             return WriteResult<UserResponseDto>.Success();
+        }
+
+        private async Task<bool> RoleExceedsCallerPermissionsAsync(
+            int roleId,
+            IReadOnlySet<string> callerPermissions,
+            CancellationToken cancellationToken)
+        {
+            var rightNames = await context.RoleRights
+                .AsNoTracking()
+                .Where(roleRight => roleRight.RoleId == roleId)
+                .Select(roleRight => roleRight.Right.Name)
+                .ToListAsync(cancellationToken);
+
+            return RoleAssignment.ExceedsCallerPermissions(rightNames, callerPermissions);
         }
 
         private async Task<Role?> GetRoleAsync(int roleId, CancellationToken cancellationToken)
@@ -371,6 +418,7 @@ namespace DemoCrudBackend.Services
             return new UserResponseDto
             {
                 Id = user.Id,
+                IsSystem = user.IsSystem,
                 Email = user.Email,
                 RoleName = roleName,
                 RoleId = user.RoleId,

@@ -27,5 +27,6 @@ alwaysApply: false
 - Never trust `IsSystem` from request DTOs; always load from DB. Role responses omit the flag.
 - Forbid: delete system user; change system user’s role; assign system role to anyone; edit, delete, or change rights of the system role.
 - Reads of the system role, including its rights, return 404. Writes return 403.
-- SuperAdmin may update own profile fields while keeping the system role.
-- `RoleAssignment` only holds small user-write helpers — no Admin/User hierarchy. System-role checks live in `RoleService`.
+- `PUT /api/users/{id}` rejects any caller, including the system user, updating their own account. Self-service profile changes are not this endpoint.
+- User create and update reject a role whose rights are not a subset of `CallerContext.PermissionNames`. Update also rejects a target user whose current role is outside that ceiling.
+- `RoleAssignment` holds the small user-write helpers, including the permission-ceiling check. No Admin/User hierarchy. System-role checks live in `RoleService`.

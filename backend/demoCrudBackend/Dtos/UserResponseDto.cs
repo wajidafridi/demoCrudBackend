@@ -4,6 +4,11 @@
     {
         public int Id { get; set; }
 
+        /// <summary>
+        /// True for the seeded system account. Copied from <c>User.IsSystem</c>, never inferred.
+        /// </summary>
+        public bool IsSystem { get; set; }
+
         public string FirstName { get; set; } = string.Empty;
 
         public string LastName { get; set; } = string.Empty;

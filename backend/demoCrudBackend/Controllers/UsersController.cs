@@ -46,7 +46,11 @@ namespace DemoCrudBackend.Controllers
             CreateUserRequestDto userRequest,
             CancellationToken cancellationToken)
         {
-            var result = await service.AddUserAsync(userRequest, CallerContext.UserId(User), cancellationToken);
+            var result = await service.AddUserAsync(
+                userRequest,
+                CallerContext.UserId(User),
+                CallerContext.PermissionNames(User),
+                cancellationToken);
 
             if (result.Status == WriteStatus.Success && result.Data is not null)
             {
@@ -67,7 +71,12 @@ namespace DemoCrudBackend.Controllers
             UpdateUserRequestDto userRequest,
             CancellationToken cancellationToken)
         {
-            var result = await service.UpdateUserAsync(id, userRequest, CallerContext.UserId(User), cancellationToken);
+            var result = await service.UpdateUserAsync(
+                id,
+                userRequest,
+                CallerContext.UserId(User),
+                CallerContext.PermissionNames(User),
+                cancellationToken);
             return MapWriteResult(result, id, "User updated successfully.");
         }
 

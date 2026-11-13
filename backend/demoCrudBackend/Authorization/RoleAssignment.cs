@@ -14,9 +14,28 @@ namespace DemoCrudBackend.Authorization
             return callerUserId == targetUserId;
         }
 
-        public static bool IsRoleChange(int currentRoleId, int requestedRoleId)
+        public static bool IsSelfUpdate(int callerUserId, int targetUserId)
         {
-            return currentRoleId != requestedRoleId;
+            return callerUserId == targetUserId;
+        }
+
+        /// <summary>
+        /// True when <paramref name="roleRightNames"/> contains a right that is not in the caller's permission claims.
+        /// An empty role does not exceed the caller.
+        /// </summary>
+        public static bool ExceedsCallerPermissions(
+            IEnumerable<string> roleRightNames,
+            IReadOnlySet<string> callerPermissions)
+        {
+            foreach (var rightName in roleRightNames)
+            {
+                if (!callerPermissions.Contains(rightName))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
