@@ -1,25 +1,47 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+
+import AppHeader from '@/components/AppHeader.vue'
+import AppSidebar from '@/components/AppSidebar.vue'
+
+const route = useRoute()
+const sidebarCollapsed = ref(false)
+const mobileOpen = ref(false)
+
+const pageTitle = computed(() => {
+  if (typeof route.meta.title === 'string' && route.meta.title.length > 0) {
+    return route.meta.title
+  }
+  if (typeof route.name === 'string') {
+    return route.name
+  }
+  return 'DemoCrud'
+})
+
+watch(
+  () => route.fullPath,
+  () => {
+    mobileOpen.value = false
+  },
+)
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col">
-    <header class="border-b border-slate-200 bg-white">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <p class="text-lg font-semibold tracking-tight text-slate-900">Demo CRUD</p>
-        <nav aria-label="Main">
-          <RouterLink
-            to="/"
-            class="text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
-          >
-            Home
-          </RouterLink>
-        </nav>
-      </div>
-    </header>
+  <div class="flex min-h-screen bg-slate-100">
+    <AppSidebar
+      :collapsed="sidebarCollapsed"
+      :mobile-open="mobileOpen"
+      @close-mobile="mobileOpen = false"
+      @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
+    />
 
-    <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-      <RouterView />
-    </main>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <AppHeader :page-title="pageTitle" @open-mobile="mobileOpen = true" />
+
+      <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <RouterView />
+      </main>
+    </div>
   </div>
 </template>

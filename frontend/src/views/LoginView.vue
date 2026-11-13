@@ -10,8 +10,10 @@ const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-const username = ref(import.meta.env.DEV ? (import.meta.env.VITE_DEV_LOGIN_USERNAME ?? '') : '')
-const password = ref(import.meta.env.DEV ? (import.meta.env.VITE_DEV_LOGIN_PASSWORD ?? '') : '')
+// Prefill only for `vite`/`vite preview` development runs — not production or Vitest.
+const useDevLoginPrefill = import.meta.env.MODE === 'development'
+const username = ref(useDevLoginPrefill ? (import.meta.env.VITE_DEV_LOGIN_USERNAME ?? '') : '')
+const password = ref(useDevLoginPrefill ? (import.meta.env.VITE_DEV_LOGIN_PASSWORD ?? '') : '')
 const showPassword = ref(false)
 const isSubmitting = ref(false)
 const formError = ref<string | null>(null)

@@ -53,8 +53,15 @@ describe('auth navigation guard', () => {
 
   it('allows a public route without authentication', async () => {
     const router = createTestRouter()
+    await router.push({ name: 'login' })
+    expect(router.currentRoute.value.name).toBe('login')
+  })
+
+  it('redirects unauthenticated users from the dashboard to login', async () => {
+    const router = createTestRouter()
     await router.push({ name: 'home' })
-    expect(router.currentRoute.value.name).toBe('home')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/')
   })
 
   it('redirects unauthenticated users from a protected route to login', async () => {

@@ -2,6 +2,8 @@ import 'vue-router'
 
 declare module 'vue-router' {
   interface RouteMeta {
+    /** Page title shown in the application header. */
+    title?: string
     /** When true, the user must be authenticated. */
     requiresAuth?: boolean
     /**
