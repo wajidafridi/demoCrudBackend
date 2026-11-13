@@ -5,8 +5,11 @@ import App from './App.vue'
 import router from './router'
 import { registerUnauthorizedSessionHandler } from '@/services/unauthorizedHandler'
 import { useAuthStore } from '@/stores/authStore'
+import { useTheme } from '@/theme/useTheme'
 
 import './style.css'
+
+useTheme()
 
 const app = createApp(App)
 const pinia = createPinia()

@@ -2,6 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Applies data-theme before Vue. Keep in sync with src/theme/theme.ts. -->
+    <script>
+      ;(() => {
+        const storageKey = 'app-theme'
+        let preference = 'system'
+        let prefersDark = false
+
+        try {
+          const stored = localStorage.getItem(storageKey)
+          if (stored === 'light' || stored === 'dark' || stored === 'system') {
+            preference = stored
+          }
+        } catch {
+          preference = 'system'
+        }
+
+        try {
+          prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        } catch {
+          prefersDark = false
+        }
+
+        const usesDark = preference === 'dark' || (preference === 'system' && prefersDark)
+        document.documentElement.setAttribute('data-theme', usesDark ? 'dark' : 'light')
+        document.documentElement.setAttribute('data-theme-preference', preference)
+      })()
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Demo CRUD</title>
