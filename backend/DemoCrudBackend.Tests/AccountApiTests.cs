@@ -109,6 +109,58 @@ namespace DemoCrudBackend.Tests
         }
 
         [Fact]
+        public async Task UpdateAccount_FutureDateOfBirth_IsRejected()
+        {
+            var roleId = await AddRoleAsync(NewName("member"), Permissions.UserEdit);
+            var user = await AddUserAsync(NewName("member"), roleId, "Member");
+            using var client = ClientFor(user, Permissions.UserEdit);
+
+            var future = await client.PutAsJsonAsync(
+                "/api/account",
+                ProfileBody(user.Email, "Ada", ("dateOfBirth", DateTime.UtcNow.Date.AddDays(2))));
+
+            Assert.Equal(HttpStatusCode.BadRequest, future.StatusCode);
+            var body = await ReadAsync(future);
+            Assert.Equal("Date of birth cannot be in the future.", body.GetProperty("message").GetString());
+            Assert.Equal(
+                "Date of birth cannot be in the future.",
+                body.GetProperty("errors").GetProperty("DateOfBirth")[0].GetString());
+
+            var today = await client.PutAsJsonAsync(
+                "/api/account",
+                ProfileBody(user.Email, "Ada", ("dateOfBirth", DateTime.UtcNow.Date)));
+
+            Assert.Equal(HttpStatusCode.OK, today.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateUser_FutureDateOfBirth_IsRejected()
+        {
+            var editorRoleId = await AddRoleAsync(NewName("editor"), Permissions.UserView, Permissions.UserCreate);
+            var viewerRoleId = await AddRoleAsync(NewName("viewer"), Permissions.UserView);
+            var caller = await AddUserAsync(NewName("caller"), editorRoleId, "Editor");
+            var userName = NewName("future");
+            using var client = ClientFor(caller, Permissions.UserView, Permissions.UserCreate);
+
+            var response = await client.PostAsJsonAsync("/api/users", new
+            {
+                firstName = "Ada",
+                lastName = "Lovelace",
+                email = $"{userName}@example.com",
+                userName,
+                password = "Secret12",
+                roleId = viewerRoleId,
+                dateOfBirth = DateTime.UtcNow.Date.AddDays(2)
+            });
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await ReadAsync(response);
+            Assert.Equal("Date of birth cannot be in the future.", body.GetProperty("message").GetString());
+            Assert.True(body.GetProperty("errors").TryGetProperty("DateOfBirth", out _));
+            Assert.Null(await FindUserByNameAsync(userName));
+        }
+
+        [Fact]
         public async Task UpdateAccount_WithoutUserEdit_UpdatesOwnProfile()
         {
             var roleId = await AddRoleAsync(NewName("plain"), Permissions.UserView);

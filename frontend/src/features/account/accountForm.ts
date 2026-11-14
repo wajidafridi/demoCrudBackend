@@ -1,4 +1,5 @@
 import type { AccountProfile, UpdateAccountRequest } from '@/types/account'
+import { dateOfBirthError } from '@/utils/dateOfBirth'
 
 export type AccountField =
   'firstName' | 'lastName' | 'email' | 'phoneNumber' | 'gender' | 'dateOfBirth' | 'address'
@@ -97,21 +98,6 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-function isValidDateInput(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false
-  }
-
-  const [yearText, monthText, dayText] = value.split('-')
-  const year = Number(yearText)
-  const month = Number(monthText)
-  const day = Number(dayText)
-  const date = new Date(Date.UTC(year, month - 1, day))
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  )
-}
-
 export function validateAccountForm(
   values: AccountFormValues,
 ): Partial<Record<AccountField, string>> {
@@ -144,9 +130,9 @@ export function validateAccountForm(
     errors.gender = genderError
   }
 
-  const dateOfBirth = values.dateOfBirth.trim()
-  if (dateOfBirth.length > 0 && !isValidDateInput(dateOfBirth)) {
-    errors.dateOfBirth = 'Enter a valid date of birth.'
+  const birthError = dateOfBirthError(values.dateOfBirth)
+  if (birthError != null) {
+    errors.dateOfBirth = birthError
   }
 
   const addressError = optionalText(values.address, 'Address', LIMITS.address)

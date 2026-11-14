@@ -1,4 +1,5 @@
 import type { CreateUserRequest, UpdateUserRequest, UserResponse } from '@/types/user'
+import { dateOfBirthError } from '@/utils/dateOfBirth'
 
 export type UserFormField =
   | 'firstName'
@@ -123,21 +124,6 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-function isValidDateInput(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false
-  }
-
-  const [yearText, monthText, dayText] = value.split('-')
-  const year = Number(yearText)
-  const month = Number(monthText)
-  const day = Number(dayText)
-  const date = new Date(Date.UTC(year, month - 1, day))
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  )
-}
-
 function parseRoleId(value: string): number | null {
   const trimmed = value.trim()
   if (!/^\d+$/.test(trimmed)) {
@@ -212,9 +198,9 @@ export function validateUserForm(
     errors.gender = genderError
   }
 
-  const dateOfBirth = values.dateOfBirth.trim()
-  if (dateOfBirth.length > 0 && !isValidDateInput(dateOfBirth)) {
-    errors.dateOfBirth = 'Enter a valid date of birth.'
+  const birthError = dateOfBirthError(values.dateOfBirth)
+  if (birthError != null) {
+    errors.dateOfBirth = birthError
   }
 
   const imageError = optionalText(values.imageUrl, 'Image URL', LIMITS.imageUrl)

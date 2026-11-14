@@ -172,9 +172,7 @@ describe('application shell', () => {
       props: { pageTitle: 'Dashboard' },
       global: { plugins: [pinia, router] },
     })
-    const notifications = header.get('[aria-label="Notifications"]')
-    expect(notifications.attributes('disabled')).toBeDefined()
-    expect(notifications.classes()).toContain('disabled:opacity-50')
+    expect(header.find('[aria-label="Notifications"]').exists()).toBe(false)
 
     await header.get('[aria-label="Open navigation"]').trigger('click')
     expect(header.emitted('openMobile')).toHaveLength(1)

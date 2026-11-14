@@ -64,41 +64,48 @@ describe('ThemeSelector', () => {
     vi.unstubAllGlobals()
   })
 
-  it('selects Sun for a fresh system preference when the OS is light', () => {
+  it('checks System for a fresh preference and leaves Light and Dark unchecked', () => {
     localStorage.removeItem(THEME_STORAGE_KEY)
     const wrapper = mount(ThemeSelector)
 
     expect(useTheme().preference.value).toBe('system')
+    expect(useTheme().resolvedTheme.value).toBe('light')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
-    expect(checked(wrapper, 'Light theme')).toBe('true')
+    expect(checked(wrapper, 'System theme')).toBe('true')
+    expect(checked(wrapper, 'Light theme')).toBe('false')
     expect(checked(wrapper, 'Dark theme')).toBe('false')
     expect(wrapper.find('select').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain('System')
     expect(wrapper.get('[role="radiogroup"]').attributes('aria-label')).toBe('Theme')
   })
 
-  it('selects Moon for a fresh system preference when the OS is dark', async () => {
+  it('keeps System checked when the OS is dark and still resolves to dark', async () => {
     localStorage.removeItem(THEME_STORAGE_KEY)
     scheme.setMatches(true)
     await nextTick()
     const wrapper = mount(ThemeSelector)
 
     expect(useTheme().preference.value).toBe('system')
+    expect(useTheme().resolvedTheme.value).toBe('dark')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
-    expect(checked(wrapper, 'Dark theme')).toBe('true')
+    expect(checked(wrapper, 'System theme')).toBe('true')
+    expect(checked(wrapper, 'Dark theme')).toBe('false')
     expect(checked(wrapper, 'Light theme')).toBe('false')
   })
 
-  it('updates the selected icon when the OS theme changes during system preference', async () => {
+  it('keeps System checked when the OS theme changes', async () => {
     const wrapper = mount(ThemeSelector)
-    expect(checked(wrapper, 'Light theme')).toBe('true')
+    expect(checked(wrapper, 'System theme')).toBe('true')
+    expect(useTheme().resolvedTheme.value).toBe('light')
 
     scheme.setMatches(true)
     await nextTick()
 
     expect(useTheme().preference.value).toBe('system')
+    expect(useTheme().resolvedTheme.value).toBe('dark')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system')
-    expect(checked(wrapper, 'Dark theme')).toBe('true')
+    expect(checked(wrapper, 'System theme')).toBe('true')
+    expect(checked(wrapper, 'Dark theme')).toBe('false')
     expect(checked(wrapper, 'Light theme')).toBe('false')
   })
 
@@ -110,11 +117,13 @@ describe('ThemeSelector', () => {
     expect(useTheme().preference.value).toBe('light')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
     expect(checked(wrapper, 'Light theme')).toBe('true')
+    expect(checked(wrapper, 'System theme')).toBe('false')
 
     scheme.setMatches(true)
     await nextTick()
 
     expect(useTheme().preference.value).toBe('light')
+    expect(useTheme().resolvedTheme.value).toBe('light')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
     expect(checked(wrapper, 'Light theme')).toBe('true')
   })
@@ -136,17 +145,25 @@ describe('ThemeSelector', () => {
     expect(checked(wrapper, 'Light theme')).toBe('false')
   })
 
-  it('moves between Light and Dark with the keyboard', async () => {
+  it('cycles System, Light, and Dark with the keyboard', async () => {
     const wrapper = mount(ThemeSelector)
     const group = wrapper.get('[role="radiogroup"]')
+
+    await group.trigger('keydown', { key: 'ArrowRight' })
+    expect(useTheme().preference.value).toBe('light')
+    expect(checked(wrapper, 'Light theme')).toBe('true')
 
     await group.trigger('keydown', { key: 'ArrowRight' })
     expect(useTheme().preference.value).toBe('dark')
     expect(checked(wrapper, 'Dark theme')).toBe('true')
 
+    await group.trigger('keydown', { key: 'ArrowRight' })
+    expect(useTheme().preference.value).toBe('system')
+    expect(checked(wrapper, 'System theme')).toBe('true')
+
     await group.trigger('keydown', { key: 'ArrowLeft' })
-    expect(useTheme().preference.value).toBe('light')
-    expect(checked(wrapper, 'Light theme')).toBe('true')
+    expect(useTheme().preference.value).toBe('dark')
+    expect(wrapper.get('[aria-label="System theme"]').attributes('title')).toBe('System theme')
     expect(wrapper.get('[aria-label="Light theme"]').attributes('title')).toBe('Light theme')
     expect(wrapper.get('[aria-label="Dark theme"]').attributes('title')).toBe('Dark theme')
   })

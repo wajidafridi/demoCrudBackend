@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AlertBanner from '@/components/AlertBanner.vue'
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 import TextField from '@/components/TextField.vue'
 import {
   describeRoleError,
@@ -21,7 +22,9 @@ const mode = computed<'create' | 'edit'>(() => (route.name === 'roles-edit' ? 'e
 const loading = ref(mode.value === 'edit')
 const loadError = ref<string | null>(null)
 const name = ref('')
+const savedName = ref('')
 const roleId = ref<number | null>(null)
+const { allowNextLeave } = useUnsavedChanges(() => name.value !== savedName.value)
 const submitting = ref(false)
 const clientError = ref<string | null>(null)
 const serverMessage = ref<string | null>(null)
@@ -46,6 +49,7 @@ onMounted(async () => {
   try {
     const role = await getRole(id)
     name.value = role.name
+    savedName.value = role.name
   } catch (error: unknown) {
     loadError.value = toApiClientError(error, 'Could not load the role.').message
   } finally {
@@ -100,6 +104,7 @@ async function onSubmit(): Promise<void> {
   }
 
   if (notice != null) {
+    allowNextLeave()
     await router.push({ name: 'roles', query: { notice } })
   }
 }

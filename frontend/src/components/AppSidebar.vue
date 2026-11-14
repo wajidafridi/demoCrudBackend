@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import NavIcons from '@/components/icons/NavIcons.vue'
 import { appNavItems, type AppNavItem } from '@/navigation/appNav'
 import { useAuthStore } from '@/stores/authStore'
 
-defineProps<{
+const props = defineProps<{
   collapsed: boolean
   mobileOpen: boolean
 }>()
@@ -18,6 +18,77 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const route = useRoute()
+const drawer = ref<HTMLElement | null>(null)
+const closeButton = ref<HTMLButtonElement | null>(null)
+let restoreFocus: HTMLElement | null = null
+
+function focusable(): HTMLElement[] {
+  const root = drawer.value
+  if (root == null) {
+    return []
+  }
+
+  return [...root.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')].filter(
+    (element) => element.closest('.hidden.lg\\:block') == null,
+  )
+}
+
+function onDrawerKeydown(event: KeyboardEvent): void {
+  if (!props.mobileOpen) {
+    return
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    emit('closeMobile')
+    return
+  }
+
+  if (event.key !== 'Tab' || drawer.value == null) {
+    return
+  }
+
+  const items = focusable()
+  if (items.length === 0) {
+    return
+  }
+
+  const first = items[0]
+  const last = items[items.length - 1]
+  const active = document.activeElement
+  if (event.shiftKey && (active === first || !drawer.value.contains(active))) {
+    event.preventDefault()
+    last?.focus()
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault()
+    first?.focus()
+  }
+}
+
+watch(
+  () => props.mobileOpen,
+  async (isOpen, wasOpen) => {
+    if (isOpen) {
+      restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      window.addEventListener('keydown', onDrawerKeydown)
+      await nextTick()
+      closeButton.value?.focus()
+      return
+    }
+
+    window.removeEventListener('keydown', onDrawerKeydown)
+    const opener = restoreFocus
+    restoreFocus = null
+    if (wasOpen === true && opener != null && !drawer.value?.contains(opener)) {
+      opener.focus()
+    }
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onDrawerKeydown)
+})
 
 const visibleNavItems = computed(() =>
   appNavItems.filter((item) => {
@@ -66,7 +137,10 @@ function onNavigate(event: MouseEvent, navigate: (event?: MouseEvent) => void): 
   />
 
   <aside
+    ref="drawer"
     class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface text-foreground transition-transform duration-200 lg:static"
+    :role="mobileOpen ? 'dialog' : undefined"
+    :aria-modal="mobileOpen ? 'true' : undefined"
     :class="[
       mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
       collapsed ? 'lg:w-20' : 'lg:w-64',
@@ -87,6 +161,7 @@ function onNavigate(event: MouseEvent, navigate: (event?: MouseEvent) => void): 
       <button
         type="button"
         class="ml-auto rounded-md p-1.5 text-foreground-secondary hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
+        ref="closeButton"
         aria-label="Close navigation"
         @click="emit('closeMobile')"
       >

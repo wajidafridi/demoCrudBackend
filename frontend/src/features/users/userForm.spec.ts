@@ -12,6 +12,7 @@ import {
   type UserFormValues,
 } from '@/features/users/userForm'
 import type { UserResponse } from '@/types/user'
+import { formatLocalDate } from '@/utils/dateOfBirth'
 
 function validValues(overrides: Partial<UserFormValues> = {}): UserFormValues {
   return {
@@ -81,6 +82,22 @@ describe('validateUserForm', () => {
     expect(errors.roleId).toBe('Role is required.')
     expect(errors.phoneNumber).toBe('Phone number must be at most 50 characters.')
     expect(errors.dateOfBirth).toBe('Enter a valid date of birth.')
+  })
+
+  it('accepts a past date and today, and rejects a future date of birth', () => {
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+
+    expect(
+      validateUserForm(validValues({ dateOfBirth: '1990-01-01' }), 'edit').dateOfBirth,
+    ).toBeUndefined()
+    expect(
+      validateUserForm(validValues({ dateOfBirth: formatLocalDate(today) }), 'edit').dateOfBirth,
+    ).toBeUndefined()
+    expect(
+      validateUserForm(validValues({ dateOfBirth: formatLocalDate(tomorrow) }), 'edit').dateOfBirth,
+    ).toBe('Date of birth cannot be in the future.')
   })
 
   it('accepts a password at the 8 character minimum', () => {

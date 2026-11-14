@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import AlertBanner from '@/components/AlertBanner.vue'
 import TextField from '@/components/TextField.vue'
@@ -13,6 +13,7 @@ import {
   type UserFormValues,
 } from '@/features/users/userForm'
 import type { RoleResponse } from '@/types/role'
+import { formatLocalDate } from '@/utils/dateOfBirth'
 
 const props = defineProps<{
   mode: UserFormMode
@@ -29,9 +30,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   submit: [payload: UserFormSubmission]
   cancel: []
+  dirty: [value: boolean]
 }>()
 
+const maxDateOfBirth = formatLocalDate(new Date())
+
 const values = reactive<UserFormValues>({ ...props.initialValues })
+const dirty = computed(() =>
+  (Object.keys(props.initialValues) as (keyof UserFormValues)[]).some(
+    (key) => values[key] !== props.initialValues[key],
+  ),
+)
+watch(dirty, (value) => emit('dirty', value), { immediate: true })
 const showPassword = ref(false)
 const clientErrors = ref<Partial<Record<UserFormField, string>>>({})
 
@@ -246,6 +256,7 @@ function onSubmit(): void {
       <TextField
         id="dateOfBirth"
         v-model="values.dateOfBirth"
+        :max="maxDateOfBirth"
         label="Date of birth"
         type="date"
         autocomplete="bday"

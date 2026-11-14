@@ -112,7 +112,8 @@ namespace DemoCrudBackend.Controllers
                 notFoundMessage: $"User with id = {id} was not found.",
                 validationMessage: "The user request is invalid.",
                 conflictMessage: "Username or email is already in use.",
-                forbiddenMessage: ForbiddenWriteMessage);
+                forbiddenMessage: ForbiddenWriteMessage,
+                errors: result.Errors);
         }
     }
 }

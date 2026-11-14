@@ -9,6 +9,7 @@ import {
   type AccountFormValues,
 } from '@/features/account/accountForm'
 import type { AccountProfile } from '@/types/account'
+import { formatLocalDate } from '@/utils/dateOfBirth'
 
 const profile: AccountProfile = {
   id: 7,
@@ -54,6 +55,20 @@ describe('account form', () => {
     expect(validateAccountForm(values({ dateOfBirth: '1990-13-01' })).dateOfBirth).toBe(
       'Enter a valid date of birth.',
     )
+  })
+
+  it('accepts a past date and today, and rejects a future date of birth', () => {
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+
+    expect(validateAccountForm(values({ dateOfBirth: '1990-01-01' })).dateOfBirth).toBeUndefined()
+    expect(
+      validateAccountForm(values({ dateOfBirth: formatLocalDate(today) })).dateOfBirth,
+    ).toBeUndefined()
+    expect(
+      validateAccountForm(values({ dateOfBirth: formatLocalDate(tomorrow) })).dateOfBirth,
+    ).toBe('Date of birth cannot be in the future.')
   })
 
   it('builds an update body without identity, role, or password fields', () => {

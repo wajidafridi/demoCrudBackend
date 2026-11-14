@@ -1,10 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UNSAVED_CHANGES_MESSAGE } from '@/composables/useUnsavedChanges'
 import { ApiClientError } from '@/services/apiError'
+import { getAccount } from '@/services/accountService'
 import { listAllRoles } from '@/services/roleService'
 import { createUser, getUser, updateUser } from '@/services/userService'
+import type { AccountProfile } from '@/types/account'
 import type { UserResponse } from '@/types/user'
 import UserFormView from '@/views/UserFormView.vue'
 
@@ -16,6 +19,10 @@ vi.mock('@/services/userService', () => ({
 
 vi.mock('@/services/roleService', () => ({
   listAllRoles: vi.fn(),
+}))
+
+vi.mock('@/services/accountService', () => ({
+  getAccount: vi.fn(),
 }))
 
 const assignableRoles = [
@@ -50,6 +57,7 @@ async function mountForm(
     history: createMemoryHistory(),
     routes: [
       { path: '/users', name: 'users', component: { template: '<div>Users list</div>' } },
+      { path: '/account', name: 'account', component: { template: '<div>My Account</div>' } },
       { path: '/users/create', name: 'users-create', component: UserFormView },
       { path: '/users/:id/edit', name: 'users-edit', component: UserFormView },
     ],
@@ -58,11 +66,14 @@ async function mountForm(
   await router.push(path)
   await router.isReady()
 
-  const wrapper = mount(UserFormView, {
-    global: {
-      plugins: [router],
+  const wrapper = mount(
+    { template: '<router-view />' },
+    {
+      global: {
+        plugins: [router],
+      },
     },
-  })
+  )
 
   return { wrapper, router }
 }
@@ -84,6 +95,12 @@ describe('UserFormView', () => {
     vi.mocked(updateUser).mockReset()
     vi.mocked(listAllRoles).mockReset()
     vi.mocked(listAllRoles).mockResolvedValue(assignableRoles)
+    vi.mocked(getAccount).mockReset()
+    vi.mocked(getAccount).mockResolvedValue({ id: 99 } as AccountProfile)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('blocks create until required fields are valid', async () => {
@@ -262,6 +279,76 @@ describe('UserFormView', () => {
         roleId: 1,
       }),
     )
+  })
+
+  it('blocks editing the signed-in account, a system account, or an unknown identity', async () => {
+    vi.mocked(getUser).mockResolvedValue(ada)
+    vi.mocked(getAccount).mockResolvedValue({ id: ada.id } as AccountProfile)
+
+    const own = await mountForm('/users/2/edit')
+    await flushPromises()
+
+    expect(own.wrapper.find('form').exists()).toBe(false)
+    expect(own.wrapper.text()).toContain('You cannot edit your own account from Users.')
+    expect(own.wrapper.text()).toContain('Go to My Account')
+    expect(own.wrapper.get('a').attributes('href')).toBe('/account')
+
+    vi.mocked(getUser).mockResolvedValue({ ...ada, id: 3, isSystem: true })
+    vi.mocked(getAccount).mockResolvedValue({ id: 99 } as AccountProfile)
+    const system = await mountForm('/users/3/edit')
+    await flushPromises()
+
+    expect(system.wrapper.find('form').exists()).toBe(false)
+    expect(system.wrapper.text()).toContain('System accounts cannot be edited from Users.')
+    expect(system.wrapper.find('a').exists()).toBe(false)
+
+    vi.mocked(getUser).mockResolvedValue({ ...ada, id: 4 })
+    vi.mocked(getAccount).mockRejectedValue(
+      new ApiClientError('Could not load your account.', 500, null),
+    )
+    const unknown = await mountForm('/users/4/edit')
+    await flushPromises()
+
+    expect(unknown.wrapper.find('form').exists()).toBe(false)
+    expect(unknown.wrapper.text()).toContain('Your account could not be confirmed')
+
+    vi.mocked(getAccount).mockResolvedValue({ id: 99 } as AccountProfile)
+    const normal = await mountForm('/users/2/edit')
+    await flushPromises()
+
+    expect(normal.wrapper.find('form').exists()).toBe(true)
+  })
+
+  it('warns before leaving a changed user form and stays quiet after a save', async () => {
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    const unchanged = await mountForm('/users/create')
+    await flushPromises()
+
+    await unchanged.router.push('/users')
+    expect(confirm).not.toHaveBeenCalled()
+    expect(unchanged.router.currentRoute.value.name).toBe('users')
+
+    const dirty = await mountForm('/users/create')
+    await flushPromises()
+    await dirty.wrapper.get('#firstName').setValue('Ada')
+    await dirty.router.push('/users')
+
+    expect(confirm).toHaveBeenCalledWith(UNSAVED_CHANGES_MESSAGE)
+    expect(dirty.router.currentRoute.value.name).toBe('users-create')
+
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+
+    confirm.mockReturnValue(true)
+    vi.mocked(createUser).mockResolvedValue(ada)
+    await fillCreateForm(dirty.wrapper)
+    await dirty.wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(dirty.router.currentRoute.value.name).toBe('users')
   })
 
   it('shows an error when roles cannot be loaded', async () => {

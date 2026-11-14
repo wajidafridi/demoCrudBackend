@@ -53,16 +53,6 @@ async function onLogout(): Promise<void> {
       <div class="flex items-center gap-2 sm:gap-3">
         <ThemeSelector />
 
-        <button
-          type="button"
-          class="hidden rounded-lg p-2 text-foreground-muted disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
-          aria-label="Notifications"
-          disabled
-          title="Notifications coming later"
-        >
-          <NavIcons name="bell" />
-        </button>
-
         <div
           class="flex items-center gap-3 rounded-xl border border-border bg-surface-secondary px-2.5 py-1.5"
         >

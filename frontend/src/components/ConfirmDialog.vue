@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 const props = defineProps<{
   open: boolean
@@ -16,21 +16,66 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const panel = ref<HTMLElement | null>(null)
+let restoreFocus: HTMLElement | null = null
+
+function focusable(): HTMLElement[] {
+  const root = panel.value
+  if (root == null) {
+    return []
+  }
+
+  return [
+    ...root.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    ),
+  ]
+}
+
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && props.busy !== true) {
+    event.preventDefault()
     emit('cancel')
+    return
+  }
+
+  if (event.key !== 'Tab' || panel.value == null) {
+    return
+  }
+
+  const items = focusable()
+  if (items.length === 0) {
+    event.preventDefault()
+    panel.value.focus()
+    return
+  }
+
+  const first = items[0]
+  const last = items[items.length - 1]
+  const active = document.activeElement
+  if (event.shiftKey && (active === first || !panel.value.contains(active))) {
+    event.preventDefault()
+    last?.focus()
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault()
+    first?.focus()
   }
 }
 
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     if (isOpen) {
+      restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
       window.addEventListener('keydown', onKeydown)
+      await nextTick()
+      panel.value?.focus()
       return
     }
 
     window.removeEventListener('keydown', onKeydown)
+    restoreFocus?.focus()
+    restoreFocus = null
   },
 )
 
@@ -42,11 +87,13 @@ onBeforeUnmount(() => {
 <template>
   <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-overlay px-4">
     <div
+      ref="panel"
       role="dialog"
       aria-modal="true"
+      tabindex="-1"
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-message"
-      class="w-full max-w-md rounded-2xl border border-border bg-surface-elevated p-6 shadow-[var(--shadow-card)]"
+      class="w-full max-w-md rounded-2xl border border-border bg-surface-elevated p-6 shadow-[var(--shadow-card)] focus:outline-none"
     >
       <h2 id="confirm-dialog-title" class="text-lg font-semibold text-foreground">{{ title }}</h2>
       <p id="confirm-dialog-message" class="mt-2 text-sm text-foreground-secondary">

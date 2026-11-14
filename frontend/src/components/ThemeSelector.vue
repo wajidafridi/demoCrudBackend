@@ -1,24 +1,33 @@
 <script setup lang="ts">
 import { useTheme } from '@/theme/useTheme'
-import type { ResolvedTheme } from '@/theme/theme'
+import type { ThemePreference } from '@/theme/theme'
 
 const theme = useTheme()
+const order: ThemePreference[] = ['light', 'dark', 'system']
 
-function choose(next: ResolvedTheme): void {
+function choose(next: ThemePreference): void {
   theme.setPreference(next)
 }
 
+function selected(preference: ThemePreference): boolean {
+  return theme.preference.value === preference
+}
+
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-    event.preventDefault()
-    choose('dark')
+  const step =
+    event.key === 'ArrowRight' || event.key === 'ArrowDown'
+      ? 1
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? -1
+        : 0
+  if (step === 0) {
     return
   }
 
-  if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-    event.preventDefault()
-    choose('light')
-  }
+  event.preventDefault()
+  const index = order.indexOf(theme.preference.value)
+  const next = order[(index + step + order.length) % order.length] ?? 'system'
+  choose(next)
 }
 </script>
 
@@ -31,17 +40,43 @@ function onKeydown(event: KeyboardEvent): void {
     @keydown="onKeydown"
   >
     <p id="theme-toggle-hint" class="sr-only">
-      Shows the current appearance. Light and Dark save an explicit choice.
+      System follows this device. Light and Dark save an explicit choice.
     </p>
+    <button
+      type="button"
+      role="radio"
+      title="System theme"
+      aria-label="System theme"
+      :aria-checked="selected('system')"
+      class="inline-flex h-8 w-8 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      :class="
+        selected('system')
+          ? 'bg-accent-solid text-accent-foreground'
+          : 'text-foreground-secondary hover:text-foreground'
+      "
+      @click="choose('system')"
+    >
+      <svg
+        class="h-4 w-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        aria-hidden="true"
+      >
+        <rect x="3" y="4" width="18" height="12" rx="2" />
+        <path stroke-linecap="round" d="M8 20h8M12 16v4" />
+      </svg>
+    </button>
     <button
       type="button"
       role="radio"
       title="Light theme"
       aria-label="Light theme"
-      :aria-checked="theme.resolvedTheme.value === 'light'"
+      :aria-checked="selected('light')"
       class="inline-flex h-8 w-8 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       :class="
-        theme.resolvedTheme.value === 'light'
+        selected('light')
           ? 'bg-accent-solid text-accent-foreground'
           : 'text-foreground-secondary hover:text-foreground'
       "
@@ -67,10 +102,10 @@ function onKeydown(event: KeyboardEvent): void {
       role="radio"
       title="Dark theme"
       aria-label="Dark theme"
-      :aria-checked="theme.resolvedTheme.value === 'dark'"
+      :aria-checked="selected('dark')"
       class="inline-flex h-8 w-8 items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       :class="
-        theme.resolvedTheme.value === 'dark'
+        selected('dark')
           ? 'bg-accent-solid text-accent-foreground'
           : 'text-foreground-secondary hover:text-foreground'
       "

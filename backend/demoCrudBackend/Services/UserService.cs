@@ -120,6 +120,13 @@ namespace DemoCrudBackend.Services
                     "You cannot assign a role that includes permissions you do not have.");
             }
 
+            if (DateOfBirthRules.IsFuture(userRequest.DateOfBirth, DateTime.UtcNow))
+            {
+                return WriteResult<UserResponseDto>.ValidationFailed(
+                    DateOfBirthRules.FutureMessage,
+                    FieldError("DateOfBirth", DateOfBirthRules.FutureMessage));
+            }
+
             var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: null, cancellationToken);
             if (uniqueness is not null)
             {
@@ -244,6 +251,13 @@ namespace DemoCrudBackend.Services
                     requestedRole.Id);
                 return WriteResult<UserResponseDto>.Forbidden(
                     "You cannot assign a role that includes permissions you do not have.");
+            }
+
+            if (DateOfBirthRules.IsFuture(userRequest.DateOfBirth, DateTime.UtcNow))
+            {
+                return WriteResult<UserResponseDto>.ValidationFailed(
+                    DateOfBirthRules.FutureMessage,
+                    FieldError("DateOfBirth", DateOfBirthRules.FutureMessage));
             }
 
             var uniqueness = await CheckUniquenessAsync(userName, email, excludeUserId: id, cancellationToken);
@@ -385,6 +399,14 @@ namespace DemoCrudBackend.Services
                 logger.LogWarning(ex, "Unique constraint violation while saving a user.");
                 return WriteResult<UserResponseDto>.Conflict("Username or email is already in use.");
             }
+        }
+
+        private static IReadOnlyDictionary<string, string[]> FieldError(string field, string message)
+        {
+            return new Dictionary<string, string[]>
+            {
+                [field] = [message]
+            };
         }
 
         private static string? NormalizeUserName(string? userName)

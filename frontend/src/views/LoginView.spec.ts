@@ -70,7 +70,7 @@ describe('LoginView', () => {
 
     const toggle = wrapper.get('[role="radiogroup"]')
     expect(toggle.attributes('aria-label')).toBe('Theme')
-    expect(wrapper.text()).not.toContain('System')
+    expect(wrapper.get('[aria-label="System theme"]').attributes('aria-checked')).toBe('true')
     expect(wrapper.get('div.justify-end').element.contains(toggle.element)).toBe(true)
     expect(wrapper.get('section').classes()).toContain('max-w-md')
     expect(wrapper.get('section').classes()).toContain('min-w-0')

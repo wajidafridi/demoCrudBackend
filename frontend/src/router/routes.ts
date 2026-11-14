@@ -16,6 +16,9 @@ export const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: LoginView,
+    meta: {
+      title: 'Sign in',
+    },
   },
   {
     path: '/',

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AlertBanner from '@/components/AlertBanner.vue'
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 import NavIcons from '@/components/icons/NavIcons.vue'
 import TextField from '@/components/TextField.vue'
 import {
@@ -19,12 +20,14 @@ import {
   type PasswordFormValues,
 } from '@/features/account/accountForm'
 import { changePassword, getAccount, updateAccount } from '@/services/accountService'
+import { formatLocalDate } from '@/utils/dateOfBirth'
 import { toApiClientError } from '@/services/apiError'
 import { useAuthStore } from '@/stores/authStore'
 import type { AccountProfile } from '@/types/account'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const maxDateOfBirth = formatLocalDate(new Date())
 
 const profile = ref<AccountProfile | null>(null)
 const loading = ref(true)
@@ -47,6 +50,14 @@ const savingPassword = ref(false)
 const showCurrentPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
+
+useUnsavedChanges(() => {
+  const profileChanged = (Object.keys(savedForm.value) as (keyof AccountFormValues)[]).some(
+    (key) => form.value[key] !== savedForm.value[key],
+  )
+  const passwordChanged = Object.values(passwordForm.value).some((value) => value.length > 0)
+  return profileChanged || passwordChanged
+})
 
 const displayName = computed(() => {
   const current = profile.value
@@ -349,6 +360,7 @@ async function onLogout(): Promise<void> {
           <TextField
             id="dateOfBirth"
             v-model="form.dateOfBirth"
+            :max="maxDateOfBirth"
             label="Date of birth"
             type="date"
             autocomplete="bday"

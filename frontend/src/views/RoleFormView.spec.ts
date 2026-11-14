@@ -1,7 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UNSAVED_CHANGES_MESSAGE } from '@/composables/useUnsavedChanges'
 import { ApiClientError } from '@/services/apiError'
 import { createRole, getRole, updateRole } from '@/services/roleService'
 import RoleFormView from '@/views/RoleFormView.vue'
@@ -27,11 +28,14 @@ async function mountForm(
   await router.push(path)
   await router.isReady()
 
-  const wrapper = mount(RoleFormView, {
-    global: {
-      plugins: [router],
+  const wrapper = mount(
+    { template: '<router-view />' },
+    {
+      global: {
+        plugins: [router],
+      },
     },
-  })
+  )
 
   return { wrapper, router }
 }
@@ -41,6 +45,10 @@ describe('RoleFormView', () => {
     vi.mocked(createRole).mockReset()
     vi.mocked(getRole).mockReset()
     vi.mocked(updateRole).mockReset()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('requires a role name before create', async () => {
@@ -172,5 +180,33 @@ describe('RoleFormView', () => {
     const invalid = await mountForm('/roles/nope/edit')
     await flushPromises()
     expect(invalid.wrapper.text()).toContain('This role link is invalid.')
+  })
+
+  it('warns before leaving a changed role form and stays quiet when unchanged or saved', async () => {
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    const unchanged = await mountForm('/roles/create')
+
+    await unchanged.router.push('/roles')
+    expect(confirm).not.toHaveBeenCalled()
+
+    const dirty = await mountForm('/roles/create')
+    await dirty.wrapper.get('#roleName').setValue('Coordinator')
+    await dirty.router.push('/roles')
+
+    expect(confirm).toHaveBeenCalledWith(UNSAVED_CHANGES_MESSAGE)
+    expect(dirty.router.currentRoute.value.name).toBe('roles-create')
+
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+
+    confirm.mockReturnValue(true)
+    vi.mocked(createRole).mockResolvedValue({ id: 4, name: 'Coordinator' })
+    await dirty.wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(dirty.router.currentRoute.value.name).toBe('roles')
   })
 })

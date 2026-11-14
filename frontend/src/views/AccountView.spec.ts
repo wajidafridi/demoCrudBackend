@@ -1,11 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UNSAVED_CHANGES_MESSAGE } from '@/composables/useUnsavedChanges'
 import { ApiClientError } from '@/services/apiError'
 import { changePassword, getAccount, updateAccount } from '@/services/accountService'
 import type { AccountProfile } from '@/types/account'
+import { formatLocalDate } from '@/utils/dateOfBirth'
 import AccountView from '@/views/AccountView.vue'
 
 vi.mock('@/services/accountService', () => ({
@@ -44,9 +46,13 @@ async function mountAccount() {
   await router.push({ name: 'account' })
   await router.isReady()
 
-  const wrapper = mount(AccountView, {
-    global: { plugins: [pinia, router] },
-  })
+  const wrapper = mount(
+    { template: '<router-view />' },
+    {
+      global: { plugins: [pinia, router] },
+    },
+  )
+  mounted.push(wrapper)
 
   return { wrapper, router }
 }
@@ -60,12 +66,22 @@ function inputValue(wrapper: ReturnType<typeof mount>, id: string): string {
   return element.value
 }
 
+const mounted: Array<{ unmount: () => void }> = []
+
 describe('AccountView', () => {
   beforeEach(() => {
     vi.mocked(getAccount).mockReset()
     vi.mocked(updateAccount).mockReset()
     vi.mocked(changePassword).mockReset()
     vi.mocked(getAccount).mockResolvedValue(profile)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    for (const wrapper of mounted) {
+      wrapper.unmount()
+    }
+    mounted.length = 0
   })
 
   it('shows a loading state and then the profile', async () => {
@@ -316,5 +332,54 @@ describe('AccountView', () => {
     expect(grid.classes()).toContain('grid-cols-1')
     expect(grid.classes()).toContain('sm:grid-cols-2')
     expect(wrapper.html()).not.toContain('violet')
+  })
+
+  it('warns before leaving unsaved account changes and stays quiet after a save', async () => {
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    const unchanged = await mountAccount()
+    await flushPromises()
+
+    await unchanged.router.push('/login')
+    expect(confirm).not.toHaveBeenCalled()
+    expect(unchanged.router.currentRoute.value.name).toBe('login')
+    unchanged.wrapper.unmount()
+
+    const dirty = await mountAccount()
+    await flushPromises()
+    await dirty.wrapper.get('#firstName').setValue('Grace')
+    await dirty.router.push('/login')
+
+    expect(confirm).toHaveBeenCalledWith(UNSAVED_CHANGES_MESSAGE)
+    expect(dirty.router.currentRoute.value.name).toBe('account')
+
+    const leaving = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(leaving)
+    expect(leaving.defaultPrevented).toBe(true)
+
+    vi.mocked(updateAccount).mockResolvedValue({ ...profile, firstName: 'Grace' })
+    await dirty.wrapper.get('#profile-form').trigger('submit')
+    await flushPromises()
+    expect(dirty.wrapper.text()).toContain('Account updated successfully.')
+
+    const afterSave = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(afterSave)
+    expect(afterSave.defaultPrevented).toBe(false)
+
+    await dirty.wrapper.get('#currentPassword').setValue('secret')
+    const passwordUnload = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(passwordUnload)
+    expect(passwordUnload.defaultPrevented).toBe(true)
+
+    confirm.mockReturnValue(true)
+    await dirty.router.push('/login')
+    expect(dirty.router.currentRoute.value.name).toBe('login')
+  })
+
+  it('limits the date of birth control to today', async () => {
+    const { wrapper } = await mountAccount()
+    await flushPromises()
+
+    expect(wrapper.get('#dateOfBirth').attributes('max')).toBe(formatLocalDate(new Date()))
   })
 })

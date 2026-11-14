@@ -91,6 +91,13 @@ namespace DemoCrudBackend.Services
                 return WriteResult<AccountProfileDto>.Conflict("Email is already in use.");
             }
 
+            if (DateOfBirthRules.IsFuture(accountRequest.DateOfBirth, DateTime.UtcNow))
+            {
+                return WriteResult<AccountProfileDto>.ValidationFailed(
+                    DateOfBirthRules.FutureMessage,
+                    FieldError("DateOfBirth", DateOfBirthRules.FutureMessage));
+            }
+
             user.FirstName = accountRequest.FirstName;
             user.LastName = accountRequest.LastName;
             user.Email = email;

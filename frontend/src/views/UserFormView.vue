@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import AlertBanner from '@/components/AlertBanner.vue'
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 import UserForm from '@/features/users/components/UserForm.vue'
 import {
   describeUserFormError,
@@ -13,6 +14,7 @@ import {
   type UserFormValues,
 } from '@/features/users/userForm'
 import { toApiClientError } from '@/services/apiError'
+import { getAccount } from '@/services/accountService'
 import { listAllRoles } from '@/services/roleService'
 import { createUser, getUser, updateUser } from '@/services/userService'
 import type { RoleResponse } from '@/types/role'
@@ -32,6 +34,11 @@ const serverFieldErrors = ref<Record<string, string[]> | null>(null)
 const roles = ref<RoleResponse[]>([])
 const rolesLoading = ref(true)
 const rolesError = ref<string | null>(null)
+const formDirty = ref(false)
+const blockedMessage = ref<string | null>(null)
+const { allowNextLeave } = useUnsavedChanges(
+  () => formDirty.value && blockedMessage.value == null && loadError.value == null,
+)
 
 async function loadRoles(): Promise<void> {
   rolesLoading.value = true
@@ -69,6 +76,29 @@ async function loadUser(): Promise<void> {
 
   try {
     const user = await getUser(id)
+    if (user.isSystem) {
+      blockedMessage.value = 'System accounts cannot be edited from Users.'
+      return
+    }
+
+    let accountId: number | null = null
+    try {
+      accountId = (await getAccount()).id
+    } catch {
+      accountId = null
+    }
+
+    if (accountId == null) {
+      blockedMessage.value =
+        'Your account could not be confirmed, so this user cannot be edited from here.'
+      return
+    }
+
+    if (user.id === accountId) {
+      blockedMessage.value = 'You cannot edit your own account from Users. Use My Account instead.'
+      return
+    }
+
     formValues.value = userToFormValues(user)
     roleName.value = user.roleName
   } catch (error: unknown) {
@@ -118,6 +148,7 @@ async function onSubmit(payload: UserFormSubmission): Promise<void> {
   }
 
   if (notice != null) {
+    allowNextLeave()
     await router.push({ name: 'users', query: { notice } })
   }
 }
@@ -138,8 +169,23 @@ async function onSubmit(payload: UserFormSubmission): Promise<void> {
 
     <AlertBanner v-else-if="loadError" variant="error" :message="loadError" />
 
+    <div
+      v-else-if="blockedMessage"
+      class="space-y-3 rounded-2xl border border-border bg-surface p-6"
+    >
+      <p class="text-sm text-foreground">{{ blockedMessage }}</p>
+      <RouterLink
+        v-if="blockedMessage.includes('My Account')"
+        :to="{ name: 'account' }"
+        class="inline-flex text-sm font-semibold text-accent hover:text-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      >
+        Go to My Account
+      </RouterLink>
+    </div>
+
     <div v-else-if="formValues" class="rounded-2xl border border-border bg-surface p-6 sm:p-8">
       <UserForm
+        @dirty="formDirty = $event"
         :mode="mode"
         :initial-values="formValues"
         :role-name="roleName"
