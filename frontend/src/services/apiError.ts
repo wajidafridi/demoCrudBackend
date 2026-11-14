@@ -57,6 +57,10 @@ function readEnvelopeMessage(payload: unknown): string | null {
   return message
 }
 
+/** Shown when the API does not answer in time (see `REQUEST_TIMEOUT_MS`). */
+export const REQUEST_TIMEOUT_MESSAGE =
+  'The server took too long to respond. Refresh the page to check whether your change was saved before trying again.'
+
 function fallbackForStatus(status: number | null, fallback: string): string {
   if (status == null) {
     return 'Could not reach the server. Check that the API is running.'
@@ -88,6 +92,11 @@ export function toApiClientError(error: unknown, fallback: string): ApiClientErr
   }
 
   if (isAxiosError(error)) {
+    if (error.response == null && (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT')) {
+      // The request may still have reached the server, so a blind retry could repeat it.
+      return new ApiClientError(REQUEST_TIMEOUT_MESSAGE, null, null)
+    }
+
     const payload = error.response?.data
     const message = readEnvelopeMessage(payload)
     const status = error.response?.status ?? null

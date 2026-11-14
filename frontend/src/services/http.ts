@@ -4,9 +4,16 @@ import { ACCESS_VERSION_HEADER, reportAccessVersion, reportForbidden } from '@/s
 import { getAccessToken } from '@/services/tokenStorage'
 import { handleUnauthorizedSession } from '@/services/unauthorizedHandler'
 
+/**
+ * Requests that get no answer within this time fail with a timeout message instead of leaving a
+ * form stuck on "Saving…". Long enough for a slow database, short enough to give feedback.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000
+
 /** Shared Axios client. Feature services will import this — do not call Axios from components. */
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: REQUEST_TIMEOUT_MS,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
