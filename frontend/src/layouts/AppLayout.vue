@@ -37,7 +37,11 @@ watch(
     />
 
     <div class="flex min-h-0 min-w-0 flex-1 flex-col">
-      <AppHeader :page-title="pageTitle" @open-mobile="mobileOpen = true" />
+      <AppHeader
+        :page-title="pageTitle"
+        :navigation-open="mobileOpen"
+        @open-mobile="mobileOpen = true"
+      />
 
       <main class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
         <RouterView />

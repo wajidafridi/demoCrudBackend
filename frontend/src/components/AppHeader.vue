@@ -6,9 +6,14 @@ import NavIcons from '@/components/icons/NavIcons.vue'
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import { useAuthStore } from '@/stores/authStore'
 
-defineProps<{
-  pageTitle: string
-}>()
+withDefaults(
+  defineProps<{
+    pageTitle: string
+    /** Whether the mobile navigation drawer is open. Drives `aria-expanded` on the menu button. */
+    navigationOpen?: boolean
+  }>(),
+  { navigationOpen: false },
+)
 
 const emit = defineEmits<{
   openMobile: []
@@ -35,6 +40,8 @@ async function onLogout(): Promise<void> {
         type="button"
         class="rounded-lg p-2 text-foreground-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
         aria-label="Open navigation"
+        aria-controls="app-navigation"
+        :aria-expanded="navigationOpen ? 'true' : 'false'"
         @click="emit('openMobile')"
       >
         <NavIcons name="menu" />

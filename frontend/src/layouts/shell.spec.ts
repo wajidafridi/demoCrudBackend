@@ -192,6 +192,39 @@ describe('application shell', () => {
     expect(useAuthStore().isAuthenticated).toBe(false)
   })
 
+  it('reports the mobile drawer state through aria-expanded on the menu button', async () => {
+    installSession(['User_View'])
+    const router = await createAppRouter()
+    await router.push({ name: 'home' })
+    await router.isReady()
+    const layout = mount(AppLayout, {
+      attachTo: document.body,
+      global: { plugins: [pinia, router] },
+    })
+    await flushPromises()
+
+    const menuButton = layout.get('[aria-label="Open navigation"]')
+    expect(menuButton.attributes('aria-controls')).toBe('app-navigation')
+    expect(layout.find('#app-navigation').exists()).toBe(true)
+    expect(menuButton.attributes('aria-expanded')).toBe('false')
+
+    await menuButton.trigger('click')
+    await flushPromises()
+    expect(menuButton.attributes('aria-expanded')).toBe('true')
+
+    await layout.get('[aria-label="Close navigation"]').trigger('click')
+    await flushPromises()
+    expect(menuButton.attributes('aria-expanded')).toBe('false')
+
+    await menuButton.trigger('click')
+    await flushPromises()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+    expect(menuButton.attributes('aria-expanded')).toBe('false')
+
+    layout.unmount()
+  })
+
   it('shows Rights Management only when the user can view roles and rights', async () => {
     installSession(['Role_View', 'Right_View'])
     const router = await createAppRouter()

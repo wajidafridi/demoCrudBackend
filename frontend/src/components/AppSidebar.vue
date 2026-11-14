@@ -137,6 +137,7 @@ function onNavigate(event: MouseEvent, navigate: (event?: MouseEvent) => void): 
   />
 
   <aside
+    id="app-navigation"
     ref="drawer"
     class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface text-foreground transition-transform duration-200 lg:static"
     :role="mobileOpen ? 'dialog' : undefined"
