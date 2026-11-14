@@ -1,20 +1,30 @@
 # Demo CRUD
 
-Demo CRUD is a learning application for building a permission-based CRUD API with ASP.NET Core, Entity Framework Core, and MySQL, plus a Vue frontend. The API manages users, roles, and a rights catalog. Protected requests are allowed or denied from permission claims carried in a JWT access token.
+Demo CRUD is a learning application for building a permission-based CRUD API with ASP.NET Core, Entity Framework Core, and MySQL, plus a Vue frontend. The API manages users, roles, and a rights catalog. A JWT access token identifies the caller. Each protected request is allowed or denied from the caller's role rights as they are in the database at that moment, so a right that is added or removed applies immediately, including to users who are already signed in.
 
 The repository name is `demoCrudBackend`. The running application is titled **Demo CRUD**.
 
 ## Project Overview
 
-The API is the working part of the project. A signed-in caller can list and maintain users, list and maintain roles, and assign or remove rights on a role, within the permissions on that caller's token. A read-only rights catalog shows only the rights the caller already holds. One seeded system user and one system role are protected from ordinary edits.
+A signed-in caller can maintain their own profile, list and maintain users and roles, and assign or remove rights on a role, within the rights that caller's role holds in the database. A read-only rights catalog shows only the rights the caller currently holds. One seeded system user and one system role are protected from ordinary edits. The Vue app provides the screens for that work and a light, dark, or system theme.
 
-This repository is meant for a developer learning the stack, and for anyone who needs to clone it and run the API locally. It is not a multi-tenant product, and it has no production deployment configuration in the repo.
+This repository is meant for a developer learning the stack, and for anyone who needs to clone it and run it locally. It is not a multi-tenant product, and it has no production deployment configuration in the repo.
+
+```mermaid
+flowchart LR
+  Vue[Vue app] -->|JSON over /api| API[ASP.NET Core API]
+  API --> Services[Services]
+  Services --> EF[EF Core DbContext]
+  EF --> MySQL[(MySQL demoCrudDb)]
+```
+
+The browser stores one access token for the tab and hides routes and buttons the signed-in user cannot use. The API validates the token and re-reads the caller's role and rights from the database on every protected request. Authentication, the permission model, and the theme are described in [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
 
 | Area | Role in the project |
 | --- | --- |
-| Backend | ASP.NET Core Web API. Login, users, roles, role rights, and the rights catalog are implemented. |
-| Frontend | Vue application. Login, layout, users, roles, and role-right assignment call this API. |
-| Docs | Backend design notes and learning status. See [Further reading](#further-reading). |
+| Backend | ASP.NET Core Web API. Login, account, users, roles, role rights, and the rights catalog are implemented. |
+| Frontend | Vue application. Login, dashboard, users, roles, rights, account, and theme call this API. |
+| Docs | Architecture, setup notes, and learning status. See [Further reading](#further-reading). |
 
 Frontend setup is documented in [frontend/README.md](frontend/README.md).
 
@@ -25,31 +35,41 @@ Frontend setup is documented in [frontend/README.md](frontend/README.md).
 Phases recorded in [docs/LEARNING_PROGRESS.md](docs/LEARNING_PROGRESS.md) through role, role-right, and rights APIs are implemented in source:
 
 - Username and password login that returns a JWT access token and an expiry time.
+- Account profile read and update, and a password change, for the user on the token.
 - Permission policies for users, roles, role-right changes, and the rights catalog.
 - User create, read, update, delete, and paged list.
 - Role create, read, update, delete, and paged list. The system role is hidden on read and rejected on write.
-- Assign and remove rights on a role. The batch is all-or-nothing, and the caller can change only rights already present on their token.
-- Paged, read-only rights catalog filtered to the caller's token.
+- Assign and remove rights on a role. The batch is all-or-nothing, and the caller can change only rights they currently hold.
+- Paged, read-only rights catalog filtered to the caller's current rights.
+- Database-authoritative permissions: after the JWT is validated, each request loads the caller's current role and rights, so grants and revocations apply on the next request. `GET /api/auth/me` returns them, and authenticated responses carry an `X-Access-Version` fingerprint.
 - Seed data for roles, rights, role-right links, and one system user. Migrations live under `backend/demoCrudBackend/Migrations`.
 - One JSON envelope for success and failure, including validation and authentication failures.
 - OpenAPI and Scalar UI in the Development environment.
+- xUnit integration tests in `backend/DemoCrudBackend.Tests`. They host the API with SQLite in memory and do not open MySQL.
 
-There is no automated test project. There is no global exception handler. There is no refresh-token endpoint. New rights are added in code and by a seed migration, not by an HTTP write API.
+Unhandled exceptions return the JSON envelope with HTTP 500 and a generic message. Login and password change are rate limited in memory. There is no refresh-token endpoint. New rights are added in code and by a seed migration, not by an HTTP write API.
 
 ### Frontend: learning UI complete
 
-The Vue app signs in against the API, keeps the access token for the browser tab, and uses the token's permission names to hide routes and buttons. The API still allows or denies every request.
+The Vue app signs in against the API, keeps the access token for the browser tab, and hides routes and buttons from the signed-in user's current rights. It re-reads those rights from `GET /api/auth/me` when they change (see [How rights changes reach signed-in users](#how-rights-changes-reach-signed-in-users)). The API still allows or denies every request.
 
-- Login and logout. Invalid credentials stay on the sign-in form. A successful login clears the password field.
+- Login and logout. Invalid credentials stay on the sign-in form. A successful login clears the password field. The login page uses the same theme control as the rest of the app.
 - The access token is stored in `sessionStorage`. Axios sends `Authorization: Bearer` and clears the session on HTTP 401. Token expiry and a 401 on a protected page return you to sign-in and remember the path. Log out does not.
-- Router guards for authentication and permissions. A missing permission opens an access-denied page.
-- Layout with a collapsible sidebar and a mobile drawer: Dashboard, Users, Roles, and Account.
-- Users: paged list, create, edit, delete, and a role dropdown.
+- Router guards for authentication and permissions. A missing permission opens an access-denied page. An unknown path renders a public 404 page with a link back to the dashboard. That page does not require a token and does not sit inside the signed-in layout.
+- Theme preference `light`, `dark`, or `system`, stored in `localStorage` under `app-theme`. The header control offers System, Light, and Dark. System follows the operating system. Light and Dark are saved choices.
+- Layout with a collapsible sidebar and a mobile drawer: Dashboard, Users, Roles, Rights Management, and Account.
+- Dashboard: a welcome line and shortcut cards. There is no statistics or activity API.
+- Users: paged list, create, edit, delete, and a role dropdown. Edit and delete are hidden for the signed-in account and for system accounts. Opening those edit URLs directly explains why the form is unavailable.
 - Roles: paged list, create, edit, and delete. The system role is absent because the API does not return it.
-- Role rights: assigned and available rights come from the API. Assign and remove change one right at a time.
+- Rights: one page at `/rights` for search, multi-select, assign, and remove. `/roles/:id/rights` redirects there with `roleId`.
+- Account: profile loaded from `GET /api/account`, an edit form for the fields that API accepts, and a separate password form. Account, user, and role forms ask before leaving unsaved changes, including on refresh or tab close.
+- Date of birth is a calendar date. The form and the API both treat "today" as the current UTC date and reject a later date.
+- The forms offer Gender as a select (Male, Female, Other, or empty). The API itself accepts any gender text up to 50 characters. Phone number is free text up to 50 characters in both.
+- Requests time out after 30 seconds. A timed-out save tells the user to refresh and check whether the change was saved before retrying. Network failures and server errors show a message and keep the typed values. Submit buttons are disabled while a save runs, so a double click sends one request.
+- Keyboard and layout: visible focus outlines on every control, a mobile drawer that reports its state with `aria-expanded` and returns focus on Escape, and tables that scroll inside their own container. Long names and emails wrap inside a capped column so the Actions column stays reachable.
 - Vitest, ESLint, and Prettier.
 
-`docs/PROJECT_HANDOVER_PROMPT.md` is an earlier mentor brief. Use this README and [frontend/README.md](frontend/README.md) for the current app.
+`docs/PROJECT_HANDOVER_PROMPT.md` is the mentor brief for the current app. Use this README and [frontend/README.md](frontend/README.md) to run it.
 
 ## Technology Stack
 
@@ -69,6 +89,8 @@ Versions below are the ones declared in the project files.
 | Scalar API reference 2.16.2 | `Scalar.AspNetCore`, mapped in Development |
 
 Architecture is **Controller → Service → DbContext**. There is no repository layer.
+
+The test project targets `net10.0` and uses xUnit 2.9.3, Microsoft.NET.Test.Sdk 17.14.1, `Microsoft.AspNetCore.Mvc.Testing` 10.0.15, and `Microsoft.EntityFrameworkCore.Sqlite` 9.0.9. SQLite is the test host only.
 
 ### Frontend
 
@@ -90,16 +112,17 @@ The package manager is npm. `frontend/package-lock.json` is the lockfile. There 
 demoCrudBackend/
 ├── .cursor/rules/                 # Backend and frontend conventions for this repo
 ├── backend/
-│   ├── demoCrudBackend.slnx       # Solution (one project)
+│   ├── demoCrudBackend.slnx       # API project and the test project
+│   ├── DemoCrudBackend.Tests/     # xUnit tests. SQLite in memory, not MySQL
 │   └── demoCrudBackend/           # ASP.NET Core Web API
 │       ├── Authorization/         # Permission names, policies, caller helpers
 │       ├── Common/                # API envelope, validation, OpenAPI helpers
-│       ├── Controllers/           # Auth, Users, Roles, Rights
+│       ├── Controllers/           # Auth, Account, Users, Roles, Rights
 │       ├── Data/                  # ApplicationDbContext and MySQL error helpers
 │       ├── Dtos/                  # Request and response models
 │       ├── Migrations/            # EF Core migrations, including seed data
 │       ├── Models/                # User, Role, Right, RoleRight
-│       ├── Services/              # Auth, token, user, role, and right services
+│       ├── Services/              # Auth, token, account, user, role, and right services
 │       ├── Program.cs
 │       ├── appsettings.json
 │       └── appsettings.Development.json
@@ -111,8 +134,8 @@ demoCrudBackend/
 | Path | Purpose |
 | --- | --- |
 | `docs/PROJECT_CONTEXT.md` | Backend modules, API table, and architectural decisions |
-| `docs/LEARNING_PROGRESS.md` | Which backend phases are done, and what was planned next |
-| `docs/PROJECT_HANDOVER_PROMPT.md` | Mentor brief. It predates the Vue scaffold |
+| `docs/LEARNING_PROGRESS.md` | Completed milestones and what is still open |
+| `docs/PROJECT_HANDOVER_PROMPT.md` | Mentor brief for the current app |
 | `.cursor/rules/` | Conventions for API shape, auth, EF Core services, and the Vue app |
 
 ## Prerequisites
@@ -166,10 +189,24 @@ dotnet user-secrets set "Jwt:Key" "local-development-signing-key-change-me" --pr
 
 Use your own random value. It must be at least 32 bytes (32 ASCII characters is enough). Startup throws if the key is missing or shorter than that.
 
-`appsettings.json` already contains `ConnectionStrings:DefaultConnection` for database `demoCrudDb` on `localhost`. If that MySQL account is not valid on your server, replace the user and password in that file, or override the whole string with user secrets (user secrets win over `appsettings.json` when `ASPNETCORE_ENVIRONMENT` is `Development`):
+`appsettings.json` keeps the key `ConnectionStrings:DefaultConnection`, and its committed value is a placeholder. Put the real MySQL account in user secrets. In Development, user secrets override `appsettings.json`. Do not write a real password into the committed file.
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "server=localhost;database=demoCrudDb;user=YOUR_MYSQL_USER;password=YOUR_MYSQL_PASSWORD;" --project backend/demoCrudBackend/DemoCrudBackend.csproj
+```
+
+The same key can be supplied for any environment with an environment variable. This does not change user secrets already stored on your machine.
+
+PowerShell:
+
+```powershell
+$env:ConnectionStrings__DefaultConnection = "server=localhost;database=demoCrudDb;user=YOUR_MYSQL_USER;password=YOUR_MYSQL_PASSWORD;"
+```
+
+Bash:
+
+```bash
+export ConnectionStrings__DefaultConnection="server=localhost;database=demoCrudDb;user=YOUR_MYSQL_USER;password=YOUR_MYSQL_PASSWORD;"
 ```
 
 Details and a full example are in [Backend configuration](#backend-configuration).
@@ -276,10 +313,10 @@ Configuration is the standard ASP.NET Core stack: `appsettings.json`, then `apps
 
 | File | Committed? | What it holds in this repo |
 | --- | --- | --- |
-| `backend/demoCrudBackend/appsettings.json` | Yes | Connection string name `DefaultConnection`, `Jwt:Issuer`, `Jwt:Audience`, `Jwt:AccessTokenMinutes` (30). No signing key. |
+| `backend/demoCrudBackend/appsettings.json` | Yes | Placeholder `ConnectionStrings:DefaultConnection` (no real database password), `Jwt:Issuer`, `Jwt:Audience`, `Jwt:AccessTokenMinutes` (30). No signing key. |
 | `backend/demoCrudBackend/appsettings.Development.json` | Yes | `Cors:AllowedOrigin` = `http://localhost:5173`, plus logging. |
 | `backend/demoCrudBackend/Properties/launchSettings.json` | Yes | Launch profiles. Both set `ASPNETCORE_ENVIRONMENT` to `Development`. |
-| User secrets | No (stored outside the repo) | Put `Jwt:Key` here. Override the connection string here if you do not want to edit `appsettings.json`. |
+| User secrets | No (stored outside the repo) | Put `Jwt:Key` and the local `ConnectionStrings:DefaultConnection` here. |
 
 ### Keys the process reads
 
@@ -290,6 +327,10 @@ Configuration is the standard ASP.NET Core stack: `appsettings.json`, then `apps
 | `Jwt:Issuer` | Yes | Committed value: `DemoCrudBackend`. |
 | `Jwt:Audience` | Yes | Committed value: `DemoCrudFrontend`. |
 | `Jwt:AccessTokenMinutes` | Yes, to issue a token | Integer from 1 through 1440. Committed value: `30`. |
+| `RateLimiting:LoginPermitLimit` | No | Login attempts allowed per IP in each window. Default `5`. |
+| `RateLimiting:LoginWindowSeconds` | No | Login window length. Default `60`. |
+| `RateLimiting:ChangePasswordPermitLimit` | No | Password-change attempts allowed per user in each window. Default `5`. |
+| `RateLimiting:ChangePasswordWindowSeconds` | No | Password-change window length. Default `60`. |
 | `Cors:AllowedOrigin` | Only if a browser on another origin calls the API | Single origin. If this value is empty, CORS is not registered. |
 
 Environment-variable form uses a double underscore, for example `Jwt__Key` and `ConnectionStrings__DefaultConnection`.
@@ -311,7 +352,7 @@ Set them with `dotnet user-secrets set`, as in [Getting started](#3-configure-th
 dotnet user-secrets list --project backend/demoCrudBackend/DemoCrudBackend.csproj
 ```
 
-`appsettings.json` in the repo already has a localhost connection string for `demoCrudDb`. If that account does not match your MySQL server, change the user and password there, or override the key with user secrets. Keep production credentials out of git.
+The committed connection string is only a placeholder for `demoCrudDb`. Set the local account with the user-secrets command in [Getting started](#3-configure-the-backend), or with `ConnectionStrings__DefaultConnection`. Keep real database passwords out of git.
 
 ## Database Setup
 
@@ -359,7 +400,7 @@ After `database update`, the database contains:
 | SuperAdmin role | Every right |
 | Admin role | Every right. This is an ordinary role, not a system role. |
 | User role | `User_View` only |
-| System user | Username `superadmin`, system role. The local password is the development seed noted on that user in `backend/demoCrudBackend/Data/ApplicationDbContext.cs` and in `docs/PROJECT_HANDOVER_PROMPT.md`. Use it only on your machine. |
+| System user | Username `superadmin`, system role. The local password is the development seed in `backend/demoCrudBackend/Data/ApplicationDbContext.cs`. Use it only on your machine. It is not copied into these docs. |
 
 Add a new migration only when the model changes. From the repository root, with a descriptive name:
 
@@ -400,9 +441,31 @@ Build and restore without running:
 ```bash
 dotnet restore backend/demoCrudBackend.slnx
 dotnet build backend/demoCrudBackend.slnx
+dotnet test backend/demoCrudBackend.slnx
 ```
 
-There is no test project to run.
+`dotnet test` runs `backend/DemoCrudBackend.Tests`. That host sets `Database:Provider` to `Sqlite` and uses an in-memory database. Leave `Database:Provider` unset for local development so the API uses MySQL.
+
+Frontend checks, from `frontend/`:
+
+```bash
+npm test
+npm run lint
+npm run format:check
+npm run build
+```
+
+`npm run build` runs `vue-tsc -b` and then `vite build`.
+
+### Accounts for manual role testing
+
+Manual RBAC checks use three local accounts. Create them in your own local database and keep their passwords out of the repository.
+
+1. **SuperAdmin**: the seeded system user. Its role has every right and cannot be edited through the API. Never delete it or remove its rights.
+2. **Admin**: sign in as SuperAdmin, open **Roles**, and use the `Admin` role (seeded) or create one. In **Rights Management**, give it the rights you want to test. Then create a user in that role from **Users → Create user**.
+3. **Restricted user**: create a role with no rights (or only some), then a user in that role.
+
+Each browser tab keeps its own session (`sessionStorage`), so you can keep all three signed in at once in separate tabs. Use disposable users and roles for delete tests. To check live revocation, keep the Admin tab open, remove a right in the SuperAdmin tab, then act in the Admin tab: the API answers 403 at once, and the Admin tab's buttons and routes update as described in [How rights changes reach signed-in users](#how-rights-changes-reach-signed-in-users).
 
 ## Authentication
 
@@ -410,7 +473,7 @@ Login is the only anonymous API. Every other controller requires a valid access 
 
 1. The client sends `POST /api/auth/login` with JSON `username` and `password` (both required, each at most 100 characters).
 2. `AuthService` trims the username, loads the user, and checks the password with `PasswordHasher<User>`. A failed match returns 401 with message `Invalid username or password.`
-3. On success the API copies the user's role name and that role's right names into a JWT. The response envelope's `data` includes `accessToken` and `expiresAtUtc`.
+3. On success the API copies the user's role name and that role's right names into a JWT. The response `data` also includes `id`, `userName`, `email`, `roleId`, `roleName`, `accessToken`, `expiresAtUtc`, `permissions`, and `accessVersion`. Email and role id are response fields. They are not JWT claims.
 4. Later requests send the token on the `Authorization` header. `TokenService` signs with HS256. Lifetime comes from `Jwt:AccessTokenMinutes` (30 in `appsettings.json`). Validation allows 30 seconds of clock skew.
 
 ```http
@@ -419,7 +482,31 @@ Authorization: Bearer <access_token>
 
 In Scalar's Authorize dialog, paste the token only. The dialog text says not to include the `Bearer` prefix. HTTP clients that set the header themselves must include the prefix.
 
-There is no refresh token. When the access token expires, the client logs in again. Permission claims are a snapshot: changing a role's rights does not change tokens that were already issued. The user must log in again to receive the new `permission` claims.
+There is no refresh token. When the access token expires, the client logs in again.
+
+### How rights changes reach signed-in users
+
+The token proves who the caller is. It is not trusted for what the caller may do.
+
+1. After the JWT passes signature, issuer, audience, and lifetime checks, `AccessRefresh.OnTokenValidated` loads the user's current role and right names from the database in one query (`AccessSnapshotService`).
+2. The role and `permission` claims from the token are replaced with those values for this request. Policies, the role ceiling, and the rights filters all use the replaced claims.
+3. If the user no longer exists, the request gets 401. If the database lookup fails, the request gets the generic 500 envelope. It never falls back to the token's claims.
+4. Every authenticated response carries `X-Access-Version`, a short fingerprint of the role and its rights. CORS exposes this header to the Vue app.
+5. `GET /api/auth/me` returns the caller's current `roleId`, `roleName`, `permissions`, and `accessVersion`.
+
+So when a SuperAdmin removes `User_Edit` from a role, the next request from any user in that role is denied with 403. Adding a right works the same way. No new login is needed. The permission claims inside the JWT only seed the Vue app's menus until its first refresh.
+
+The Vue app refreshes its rights from `/api/auth/me`:
+
+- when a response carries an `X-Access-Version` different from the one it holds,
+- when the API answers 403,
+- before opening a route that needs a right,
+- in the background before other signed-in pages (for example the dashboard),
+- when the browser tab regains focus or becomes visible, and every 60 seconds while it is visible.
+
+When a refresh removes a right that the open page needs, the app moves to Access Denied. Buttons and sidebar links follow the refreshed rights. Between those triggers an idle page can still show a button for a right that was just removed. Clicking it is safe: the API returns 403 and the app refreshes.
+
+Each authenticated request costs one extra indexed query (user, role, and rights). Rights are not cached, so there is no stale window and nothing to invalidate across servers.
 
 Claims on the token:
 
@@ -430,7 +517,7 @@ Claims on the token:
 | Role | Role name |
 | `permission` | One claim per right name on the role, such as `User_View` |
 
-Policies are registered from `Authorization/Permissions.cs`. A policy requires an authenticated user and a matching `permission` claim. The system user and system role have extra checks in the services (for example, the system role cannot be edited, deleted, or have its rights changed through the API, and reads of that role return 404).
+Policies are registered from `Authorization/Permissions.cs`. A policy requires an authenticated user and a matching `permission` claim. That claim comes from the database on each request, as described above. The system user and system role have extra checks in the services (for example, the system role cannot be edited, deleted, or have its rights changed through the API, and reads of that role return 404).
 
 ### Login body
 
@@ -450,6 +537,8 @@ A successful login looks like this (fields abbreviated):
   "data": {
     "id": 1,
     "userName": "superadmin",
+    "email": "user@example.com",
+    "roleId": 1,
     "roleName": "SuperAdmin",
     "accessToken": "<jwt>",
     "expiresAtUtc": "2026-01-01T00:30:00Z"
@@ -465,7 +554,7 @@ Non-paged endpoints use `ApiResponse<T>` (`pagination` is null). Paged lists use
 
 List endpoints accept `pageNumber` and `pageSize`. Defaults are 1 and 10. Values below 1 are replaced with those defaults. `pageSize` above 100 is capped at 100.
 
-Failed validation returns 400 with `success: false`, message `Validation failed`, and field names in `errors`. A missing or invalid token returns 401. A token that lacks the policy's permission returns 403. Write operations can also return 400, 403, 404, or 409 from the service result.
+Failed validation returns 400 with `success: false`, message `Validation failed`, and field names in `errors`. A missing or invalid token returns 401. A caller whose current role lacks the policy's permission returns 403. A token for a user who no longer exists returns 401. Write operations can also return 400, 403, 404, or 409 from the service result.
 
 ## API Documentation
 
@@ -480,6 +569,10 @@ In Scalar, call `POST /api/auth/login`, copy `data.accessToken` from the respons
 | Method | Path | Permission | Success |
 | --- | --- | --- | --- |
 | POST | `/api/auth/login` | Anonymous | 200, access token |
+| GET | `/api/auth/me` | Authenticated | 200, current role and rights from the database |
+| GET | `/api/account` | Authenticated | 200, signed-in profile |
+| PUT | `/api/account` | Authenticated | 200 |
+| POST | `/api/account/change-password` | Authenticated | 200 |
 | GET | `/api/users?pageNumber=&pageSize=` | `User_View` | 200, paged |
 | GET | `/api/users/{id}` | `User_View` | 200 |
 | POST | `/api/users` | `User_Create` | 201 |
@@ -495,7 +588,11 @@ In Scalar, call `POST /api/auth/login`, copy `data.accessToken` from the respons
 | DELETE | `/api/roles/{id}/rights` | `RoleRight_Assign` | 200 |
 | GET | `/api/rights?pageNumber=&pageSize=` | `Right_View` | 200, paged, filtered to the caller |
 
-Role create and update accept `{ "name": "..." }` only. Assign and remove accept `{ "rightIds": [1, 2] }`. User create and update use the fields on `CreateUserRequestDto` and `UpdateUserRequestDto` in `backend/demoCrudBackend/Dtos/`.
+Role create and update accept `{ "name": "..." }` only. Assign and remove accept `{ "rightIds": [1, 2] }`. User create and update use the fields on `CreateUserRequestDto` and `UpdateUserRequestDto`. Account update uses `UpdateAccountRequestDto`. Password change uses `{ "currentPassword", "newPassword" }`. Those types are in `backend/demoCrudBackend/Dtos/`.
+
+A date of birth is optional. The stored value stays a date-time column, and requests still send `YYYY-MM-DD`. The API compares that calendar date with the current UTC date and rejects a later date with `Date of birth cannot be in the future.` The Vue forms use the same UTC date.
+
+Passwords on user create and on account password change are 8–100 characters. Password change requires the current password to match the stored hash, and the new password must not match that hash. A password change does not revoke tokens that are already issued. The caller cannot update or delete their own user through `/api/users`, cannot change a system user, and cannot assign, edit, or delete a user whose role includes a permission the caller does not hold. Removing `Role_View`, `Right_View`, or `RoleRight_Assign` from the caller's own role is rejected.
 
 `backend/demoCrudBackend/DemoCrudBackend.http` still contains a sample `GET /weatherforecast/` request. That endpoint is not implemented. Use the table above or Scalar.
 
@@ -509,7 +606,7 @@ More behavioral detail (system role, conflicts, privilege limits) is in [docs/PR
 - Keep the MySQL provider.
 - Put a new HTTP endpoint on the existing controller for that area, or add a controller beside `Controllers/AuthController.cs`. Put business rules in a service under `Services/`, and request or response types under `Dtos/`.
 - Return the shared envelope from `Common/ApiResponse.cs` through `ApiControllerBase`. Do not return a raw DTO from a controller.
-- A new permission needs a constant in `Authorization/Permissions.cs` (so `Program.cs` registers a policy from `Permissions.All`) and a seed migration that inserts the `Rights` row. Assign it to roles in that migration. Existing tokens do not see the new claim until the next login.
+- A new permission needs a constant in `Authorization/Permissions.cs` (so `Program.cs` registers a policy from `Permissions.All`) and a seed migration that inserts the `Rights` row. Assign it to roles in that migration. Signed-in users get it on their next request once it is assigned to their role.
 - Do not add create, update, or delete endpoints for rights unless a task explicitly asks for them.
 - Conventions for the envelope, JWT, and EF Core writes are in `.cursor/rules/backend-api-envelope.mdc`, `backend-auth-rbac.mdc`, and `backend-services-ef.mdc`.
 
@@ -549,22 +646,52 @@ Work in `frontend/` and follow [frontend/README.md](frontend/README.md). Convent
 | Frontend requests go to the wrong host | `frontend/.env` must exist. `VITE_API_BASE_URL` in `.env.example` is `https://localhost:7193/api`. Restart `npm run dev` after changing it. |
 | `npm install` or `npm run dev` fails on the Node version | Vite 8 requires Node.js `^20.19.0` or `>=22.12.0`. |
 | Scalar or `/openapi/v1.json` returns 404 | The environment is not Development, or the app is not the process you think is on that port. Launch profiles set `ASPNETCORE_ENVIRONMENT=Development`. |
-| Login works but a new permission returns 403 | The token was issued before that right existed. Log in again. |
+| A right was just granted but the page still hides the button | The API already allows it. The Vue app picks it up on the next API response, route change, tab focus, or within 60 seconds. Reloading the page also works. |
 | Certificate warning or failed call to `https://localhost:7193` | Trust the local ASP.NET development certificate (`dotnet dev-certs https --trust`), or switch both the API profile and `VITE_API_BASE_URL` to HTTP. |
 | HTTPS errors when the frontend calls `http://localhost:5118` | You started the `https` profile, so HTTP is redirected. Use `--launch-profile http` and set `VITE_API_BASE_URL` to `http://localhost:5118/api`. |
 
-## Future Development
+## Testing and QA
 
-These items are still open. The Vue screens listed above are already in the app.
+### Automated (last verified run)
 
-| Area | Planned |
+| Check | Command | Result |
+| --- | --- | --- |
+| Backend tests | `dotnet test backend/demoCrudBackend.slnx` | 74 passed. Only warnings are the NuGet advisories listed under Known limitations. |
+| Frontend tests | `npm test` | 253 passed (34 files) |
+| Lint | `npm run lint` | Clean |
+| Formatting | `npm run format:check` | Clean |
+| Type check | `npx vue-tsc -b --pretty false` | No errors |
+| Build | `npx vite build` | Succeeds |
+
+Backend tests include the live-revocation sequence (log in, remove a right, the same token gets 403 with the database unchanged, restore, the same token works again), grants during a session, users moved to another role, deleted accounts, a database failure during the rights lookup (fails closed with 500), and missing, malformed, expired, and forged tokens. Frontend tests cover route denial and restore, the access watcher, version de-duplication, delete dialogs after a revoke, request timeouts, focus indicators, the drawer's `aria-expanded`, and long table values.
+
+### Manual browser QA
+
+These were checked by hand against a local MySQL database with disposable users and roles. They are not automated end-to-end tests.
+
+- Three accounts (SuperAdmin, an Admin role, a role with no rights) signed in at once in separate tabs. Revoking and granting rights from Rights Management changed routes, sidebar links, and list buttons in the other tabs without signing in again. A stale button click got 403 and left the data unchanged.
+- The same account in two tabs: both picked up a revoke and a restore, and a direct API call with the revoked token got 403.
+- Keyboard: Tab and Shift+Tab through login, dashboard, user forms, the delete dialog, the mobile drawer, and Rights Management (assign and remove by keyboard). No keyboard traps.
+- Layout at 375, 768, 1023, and 1024 pixels wide: no page-level sideways scroll.
+- Failure handling during save: network failure, HTTP 500, a request with no answer (timeout), refresh mid-save, and repeated submit clicks. No partial or duplicate writes.
+- 127 users across 13 pages: no duplicate or missing rows, page-size changes, and deleting the last rows of the last page.
+
+Not verified by hand: screen readers, every theme on every page, and a real database outage (covered by an automated test only).
+
+## Known limitations
+
+The screens and APIs listed above are implemented. These are not:
+
+| Area | Current gap |
 | --- | --- |
-| Backend | Automated tests for auth, users, roles, and role rights |
-| Backend | Optional global exception handling |
-| Frontend | Browser end-to-end tests. Unit tests already cover services, forms, lists, and guards. |
-| API | Refresh tokens. Expired access tokens require a new login. |
-
-Do not add a rights create/update/delete API unless a later task asks for it.
+| Tokens | No refresh token, server logout, or token revocation. A password change leaves existing access tokens valid until they expire (`Jwt:AccessTokenMinutes`, 30 minutes by default), so a token taken before the change still works for that time. Rights changes and account deletion apply to existing tokens on the next request. Logout only clears the browser tab's copy of the token; a copy taken elsewhere stays valid until it expires. |
+| Validation | Phone number accepts any text up to 50 characters. There is no format rule in the API or the Vue forms. |
+| API | Login allows 5 attempts per minute per client IP. Password change allows 5 attempts per minute per signed-in user. Both counters live in the API process. They are not shared across servers, and they reset when the process restarts. There is no audit log and no account lockout. |
+| API | No create, update, or delete endpoint for rights. No dashboard or activity summary endpoint. User lists accept only `pageNumber` and `pageSize`. |
+| Packages | `dotnet restore` reports known advisories for transitive packages: `Microsoft.OpenApi` 2.0.0 (high, GHSA-v5pm-xwqc-g5wc, pulled in by OpenAPI), `MySqlConnector` 2.4.0 (moderate, GHSA-473q-m89c-ghf8, pulled in by Pomelo), and `SQLitePCLRaw.lib.e_sqlite3` 2.1.10 (high, GHSA-2m69-gcr7-jv3q, test host only). They are not upgraded in this repo. |
+| Tests | Vitest and the xUnit project cover the current modules. There are no browser end-to-end tests; browser checks were manual (see Testing and QA). |
+| UI | Low-severity items from manual QA: after Assign or Remove on Rights Management, keyboard focus returns to the page body. Moving straight from one user's edit URL to another's by router navigation keeps the first page's state until reload (no in-app link does this). The Create and Edit User pages have no heading element. Below about 1,100 pixels the Users table needs a sideways scroll to reach Actions. A page left idle can show a just-revoked button for up to 60 seconds; the API still refuses it. |
+| Operations | No production hosting or secret-rotation setup in this repository. Passing the test commands does not make the app production-ready. |
 
 ## Contributing
 
@@ -576,7 +703,7 @@ Do not add a rights create/update/delete API unless a later task asks for it.
    ```
 
 3. Keep the change small. Match the surrounding code and the conventions in `.cursor/rules/`.
-4. Backend: exercise the route you changed (Scalar or an HTTP client) against a database that has the migrations applied. There is no automated test suite yet, so say what you ran by hand.
+4. Backend: run `dotnet test backend/demoCrudBackend.slnx`. For a route the tests do not cover, also call it against a database that has the migrations applied, and say what you ran.
 5. Frontend: from `frontend/`, run `npm test`, `npm run lint`, `npm run format:check`, and `npm run build`. When the change has a visible UI, check it in the browser.
 6. Open a pull request that explains why the change was made and how you checked it.
 
@@ -586,4 +713,5 @@ Do not commit user secrets, `frontend/.env`, or a real JWT signing key. `fronten
 
 - [frontend/README.md](frontend/README.md) — Vue setup, scripts, and what the UI does today
 - [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) — backend behavior and decisions
-- [docs/LEARNING_PROGRESS.md](docs/LEARNING_PROGRESS.md) — completed phases and the next planned work
+- [docs/LEARNING_PROGRESS.md](docs/LEARNING_PROGRESS.md) — completed milestones and remaining gaps
+- [docs/PROJECT_HANDOVER_PROMPT.md](docs/PROJECT_HANDOVER_PROMPT.md) — mentor brief
