@@ -13,7 +13,16 @@ namespace DemoCrudBackend.Services
     {
         private const string ForbiddenMessage = "You are not allowed to perform this role operation.";
         private const string NameInUseMessage = "Role name is already in use.";
+        private const string OwnRoleRightsMessage =
+            "You cannot remove role-management rights from your own role.";
         private const int MaxRoleNameLength = 100;
+
+        private static readonly HashSet<string> OwnRoleProtectedRights = new(StringComparer.Ordinal)
+        {
+            Permissions.RoleRightAssign,
+            Permissions.RoleView,
+            Permissions.RightView
+        };
 
         private static readonly Expression<Func<Role, RoleResponseDto>> RoleProjection = role =>
             new RoleResponseDto
@@ -236,7 +245,8 @@ namespace DemoCrudBackend.Services
             bool assign,
             CancellationToken cancellationToken)
         {
-            if (await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken) is null)
+            var callerId = await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken);
+            if (callerId is null)
             {
                 logger.LogWarning(
                     "Denied role-right change because caller {CallerUserId} could not be resolved.",
@@ -302,6 +312,16 @@ namespace DemoCrudBackend.Services
             }
             else
             {
+                if (rights.Any(right => OwnRoleProtectedRights.Contains(right.Name))
+                    && await CallerOwnsRoleAsync(callerId.Value, role!.Id, cancellationToken))
+                {
+                    logger.LogWarning(
+                        "Denied removal of role-management rights from the caller's own role {RoleId} by caller {CallerUserId}.",
+                        roleId,
+                        callerId);
+                    return WriteResult<IReadOnlyList<RightResponseDto>>.Forbidden(OwnRoleRightsMessage);
+                }
+
                 if (distinctIds.Any(rightId => !assignedIds.Contains(rightId)))
                 {
                     return WriteResult<IReadOnlyList<RightResponseDto>>.Conflict(
@@ -324,6 +344,18 @@ namespace DemoCrudBackend.Services
 
             var visibleRights = await LoadVisibleRightsAsync(role.Id, callerPermissions, cancellationToken);
             return WriteResult<IReadOnlyList<RightResponseDto>>.Success(visibleRights);
+        }
+
+        private async Task<bool> CallerOwnsRoleAsync(
+            int callerUserId,
+            int roleId,
+            CancellationToken cancellationToken)
+        {
+            return await context.Users
+                .AsNoTracking()
+                .AnyAsync(
+                    user => user.Id == callerUserId && user.RoleId == roleId,
+                    cancellationToken);
         }
 
         private IQueryable<Role> VisibleRoles()

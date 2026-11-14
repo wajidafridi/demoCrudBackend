@@ -28,6 +28,7 @@ namespace DemoCrudBackend.Services
         Task<WriteResult<UserResponseDto>> DeleteUserAsync(
             int id,
             int? callerUserId,
+            IReadOnlySet<string> callerPermissions,
             CancellationToken cancellationToken = default);
     }
 }

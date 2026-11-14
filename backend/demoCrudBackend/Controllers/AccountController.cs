@@ -4,6 +4,7 @@ using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DemoCrudBackend.Controllers
 {
@@ -46,6 +47,7 @@ namespace DemoCrudBackend.Controllers
         /// Changes the signed-in user's password.
         /// Existing access tokens stay valid until they expire. This action does not revoke them.
         /// </summary>
+        [EnableRateLimiting(RateLimitPolicies.ChangePassword)]
         [HttpPost("change-password")]
         public async Task<ActionResult<ApiResponse<object?>>> ChangePassword(
             ChangePasswordRequestDto passwordRequest,

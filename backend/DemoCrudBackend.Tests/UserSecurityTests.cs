@@ -276,6 +276,198 @@ namespace DemoCrudBackend.Tests
             Assert.False(updated.GetProperty("isSystem").GetBoolean());
         }
 
+        [Fact]
+        public async Task DeleteUser_RoleExceedsCeiling_ReturnsForbidden()
+        {
+            var callerRoleId = await AddRoleAsync(NewName("deleter"), Permissions.UserView, Permissions.UserDelete);
+            var elevatedRoleId = await AddRoleAsync(NewName("elevated"), Permissions.UserView, Permissions.UserEdit);
+            var caller = await AddUserAsync(NewName("caller"), callerRoleId, "Deleter");
+            var target = await AddUserAsync(NewName("target"), elevatedRoleId, "Elevated");
+            using var client = ClientFor(caller, Permissions.UserView, Permissions.UserDelete);
+
+            var response = await client.DeleteAsync($"/api/users/{target.Id}");
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            await AssertFailureAsync(
+                response,
+                "You cannot delete a user whose role includes permissions you do not have.");
+            await AssertUserExistsAsync(target.Id);
+        }
+
+        [Fact]
+        public async Task DeleteUser_EqualPrivilege_Succeeds()
+        {
+            var roleId = await AddRoleAsync(NewName("peer"), Permissions.UserView, Permissions.UserDelete);
+            var caller = await AddUserAsync(NewName("caller"), roleId, "Peer");
+            var target = await AddUserAsync(NewName("target"), roleId, "Peer");
+            using var client = ClientFor(caller, Permissions.UserView, Permissions.UserDelete);
+
+            var response = await client.DeleteAsync($"/api/users/{target.Id}");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var body = await ReadAsync(response);
+            Assert.True(body.GetProperty("success").GetBoolean());
+            await AssertUserMissingByIdAsync(target.Id);
+            await AssertUserExistsAsync(caller.Id);
+        }
+
+        [Fact]
+        public async Task DeleteUser_LowerPrivilege_Succeeds()
+        {
+            var callerRoleId = await AddRoleAsync(NewName("deleter"), Permissions.UserView, Permissions.UserDelete);
+            var viewerRoleId = await AddRoleAsync(NewName("viewer"), Permissions.UserView);
+            var caller = await AddUserAsync(NewName("caller"), callerRoleId, "Deleter");
+            var target = await AddUserAsync(NewName("target"), viewerRoleId, "Viewer");
+            using var client = ClientFor(caller, Permissions.UserView, Permissions.UserDelete);
+
+            var response = await client.DeleteAsync($"/api/users/{target.Id}");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            await AssertUserMissingByIdAsync(target.Id);
+        }
+
+        [Fact]
+        public async Task DeleteUser_Self_ReturnsForbidden()
+        {
+            var roleId = await AddRoleAsync(NewName("deleter"), Permissions.UserView, Permissions.UserDelete);
+            var caller = await AddUserAsync(NewName("caller"), roleId, "Deleter");
+            using var client = ClientFor(caller, Permissions.UserView, Permissions.UserDelete);
+
+            var response = await client.DeleteAsync($"/api/users/{caller.Id}");
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            await AssertFailureAsync(response, "You cannot delete your own account.");
+            await AssertUserExistsAsync(caller.Id);
+        }
+
+        [Fact]
+        public async Task DeleteUser_SystemAccount_ReturnsForbidden()
+        {
+            var systemUser = await GetSystemUserAsync();
+            var roleId = await AddRoleAsync(NewName("full"), Permissions.All);
+            var caller = await AddUserAsync(NewName("caller"), roleId, "Full");
+            using var client = ClientFor(caller, Permissions.All);
+
+            var response = await client.DeleteAsync($"/api/users/{systemUser.Id}");
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            await AssertFailureAsync(response, "The system user cannot be deleted.");
+            await AssertUserExistsAsync(systemUser.Id);
+        }
+
+        [Theory]
+        [InlineData(Permissions.RoleRightAssign)]
+        [InlineData(Permissions.RoleView)]
+        [InlineData(Permissions.RightView)]
+        public async Task RemoveRights_GuardedRightOnOwnRole_ReturnsForbidden(string guardedRight)
+        {
+            var roleId = await AddRoleAsync(
+                NewName("manager"),
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView,
+                Permissions.UserView);
+            var caller = await AddUserAsync(NewName("caller"), roleId, "Manager");
+            using var client = ClientFor(
+                caller,
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView,
+                Permissions.UserView);
+
+            var response = await DeleteJsonAsync(
+                client,
+                $"/api/roles/{roleId}/rights",
+                new { rightIds = new[] { await GetRightIdAsync(guardedRight) } });
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            await AssertFailureAsync(response, "You cannot remove role-management rights from your own role.");
+            Assert.True(await RoleHasRightAsync(roleId, guardedRight));
+        }
+
+        [Fact]
+        public async Task RemoveRights_NonGuardedRightOnOwnRole_Succeeds()
+        {
+            var roleId = await AddRoleAsync(
+                NewName("manager"),
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView,
+                Permissions.UserView);
+            var caller = await AddUserAsync(NewName("caller"), roleId, "Manager");
+            using var client = ClientFor(
+                caller,
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView,
+                Permissions.UserView);
+
+            var response = await DeleteJsonAsync(
+                client,
+                $"/api/roles/{roleId}/rights",
+                new { rightIds = new[] { await GetRightIdAsync(Permissions.UserView) } });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var body = await ReadAsync(response);
+            Assert.True(body.GetProperty("success").GetBoolean());
+            Assert.False(await RoleHasRightAsync(roleId, Permissions.UserView));
+            Assert.True(await RoleHasRightAsync(roleId, Permissions.RoleRightAssign));
+            Assert.True(await RoleHasRightAsync(roleId, Permissions.RoleView));
+            Assert.True(await RoleHasRightAsync(roleId, Permissions.RightView));
+        }
+
+        [Fact]
+        public async Task RemoveRights_GuardedRightOnAnotherRole_Succeeds()
+        {
+            var callerRoleId = await AddRoleAsync(
+                NewName("manager"),
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView);
+            var otherRoleId = await AddRoleAsync(NewName("viewer"), Permissions.RoleView);
+            var caller = await AddUserAsync(NewName("caller"), callerRoleId, "Manager");
+            using var client = ClientFor(
+                caller,
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView);
+
+            var response = await DeleteJsonAsync(
+                client,
+                $"/api/roles/{otherRoleId}/rights",
+                new { rightIds = new[] { await GetRightIdAsync(Permissions.RoleView) } });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.False(await RoleHasRightAsync(otherRoleId, Permissions.RoleView));
+            Assert.True(await RoleHasRightAsync(callerRoleId, Permissions.RoleView));
+        }
+
+        [Fact]
+        public async Task RemoveRights_RightOutsideCallerPermissions_ReturnsForbidden()
+        {
+            var callerRoleId = await AddRoleAsync(
+                NewName("manager"),
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView,
+                Permissions.UserDelete);
+            var caller = await AddUserAsync(NewName("caller"), callerRoleId, "Manager");
+            using var client = ClientFor(
+                caller,
+                Permissions.RoleRightAssign,
+                Permissions.RoleView,
+                Permissions.RightView);
+
+            var response = await DeleteJsonAsync(
+                client,
+                $"/api/roles/{callerRoleId}/rights",
+                new { rightIds = new[] { await GetRightIdAsync(Permissions.UserDelete) } });
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            await AssertFailureAsync(response, "You can only change rights that are assigned to you.");
+            Assert.True(await RoleHasRightAsync(callerRoleId, Permissions.UserDelete));
+        }
+
         private HttpClient ClientFor(TestUser user, params string[] permissions)
         {
             return _factory.CreateAuthenticatedClient(user.Id, user.UserName, user.RoleName, permissions);
@@ -423,6 +615,51 @@ namespace DemoCrudBackend.Tests
             var database = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var exists = await database.Users.AsNoTracking().AnyAsync(user => user.UserName == userName);
             Assert.False(exists);
+        }
+
+        private async Task AssertUserExistsAsync(int userId)
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var database = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var exists = await database.Users.AsNoTracking().AnyAsync(user => user.Id == userId);
+            Assert.True(exists);
+        }
+
+        private async Task AssertUserMissingByIdAsync(int userId)
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var database = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var exists = await database.Users.AsNoTracking().AnyAsync(user => user.Id == userId);
+            Assert.False(exists);
+        }
+
+        private async Task<int> GetRightIdAsync(string rightName)
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var database = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return await database.Rights
+                .AsNoTracking()
+                .Where(right => right.Name == rightName)
+                .Select(right => right.Id)
+                .SingleAsync();
+        }
+
+        private async Task<bool> RoleHasRightAsync(int roleId, string rightName)
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var database = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return await database.RoleRights
+                .AsNoTracking()
+                .AnyAsync(roleRight => roleRight.RoleId == roleId && roleRight.Right.Name == rightName);
+        }
+
+        private static async Task<HttpResponseMessage> DeleteJsonAsync(HttpClient client, string url, object body)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Delete, url)
+            {
+                Content = JsonContent.Create(body)
+            };
+            return await client.SendAsync(request);
         }
 
         private static async Task AssertFailureAsync(HttpResponseMessage response, string message)

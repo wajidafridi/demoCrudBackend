@@ -86,7 +86,11 @@ namespace DemoCrudBackend.Controllers
             int id,
             CancellationToken cancellationToken)
         {
-            var result = await service.DeleteUserAsync(id, CallerContext.UserId(User), cancellationToken);
+            var result = await service.DeleteUserAsync(
+                id,
+                CallerContext.UserId(User),
+                CallerContext.PermissionNames(User),
+                cancellationToken);
             return MapWriteResult(result, id, "User deleted successfully.");
         }
 

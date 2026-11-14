@@ -266,8 +266,11 @@ namespace DemoCrudBackend.Services
         public async Task<WriteResult<UserResponseDto>> DeleteUserAsync(
             int id,
             int? callerUserId,
+            IReadOnlySet<string> callerPermissions,
             CancellationToken cancellationToken = default)
         {
+            callerPermissions ??= new HashSet<string>(StringComparer.Ordinal);
+
             var callerId = await CallerLookup.ResolveUserIdAsync(context, callerUserId, cancellationToken);
             if (callerId is null)
             {
@@ -298,6 +301,17 @@ namespace DemoCrudBackend.Services
             {
                 logger.LogWarning("Denied self-delete of user {UserId}.", id);
                 return WriteResult<UserResponseDto>.Forbidden("You cannot delete your own account.");
+            }
+
+            if (await RoleExceedsCallerPermissionsAsync(userToDelete.RoleId, callerPermissions, cancellationToken))
+            {
+                logger.LogWarning(
+                    "Denied delete of user {UserId} by caller {CallerUserId} because role {RoleId} exceeds their permissions.",
+                    id,
+                    callerId,
+                    userToDelete.RoleId);
+                return WriteResult<UserResponseDto>.Forbidden(
+                    "You cannot delete a user whose role includes permissions you do not have.");
             }
 
             context.Users.Remove(userToDelete);

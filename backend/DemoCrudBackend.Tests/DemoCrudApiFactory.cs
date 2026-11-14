@@ -10,7 +10,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace DemoCrudBackend.Tests
 {
-    public sealed class DemoCrudApiFactory : WebApplicationFactory<Program>
+    public class DemoCrudApiFactory : WebApplicationFactory<Program>
     {
         public const string ConnectionString = "Data Source=DemoCrudSecurityTests;Mode=Memory;Cache=Shared";
 

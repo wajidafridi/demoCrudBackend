@@ -3,6 +3,7 @@ using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DemoCrudBackend.Controllers
 {
@@ -10,6 +11,7 @@ namespace DemoCrudBackend.Controllers
     public class AuthController(IAuthService authService) : ApiControllerBase
     {
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Login)]
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<LoginResponseDto>>> Login(
             [FromBody] LoginRequestDto loginRequest,
