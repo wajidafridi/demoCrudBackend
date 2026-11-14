@@ -19,6 +19,7 @@ import {
   type PasswordField,
   type PasswordFormValues,
 } from '@/features/account/accountForm'
+import { GENDER_OPTIONS } from '@/features/genderOptions'
 import { changePassword, getAccount, updateAccount } from '@/services/accountService'
 import { formatUtcDate } from '@/utils/dateOfBirth'
 import { toApiClientError } from '@/services/apiError'
@@ -349,14 +350,31 @@ async function onLogout(): Promise<void> {
             :disabled="savingProfile"
             :error="profileError('phoneNumber')"
           />
-          <TextField
-            id="gender"
-            v-model="form.gender"
-            label="Gender"
-            :maxlength="50"
-            :disabled="savingProfile"
-            :error="profileError('gender')"
-          />
+          <div class="space-y-1.5">
+            <label for="gender" class="block text-sm font-medium text-foreground">Gender</label>
+            <select
+              id="gender"
+              v-model="form.gender"
+              name="gender"
+              class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
+              :class="
+                profileError('gender')
+                  ? 'border-danger focus-visible:outline-danger'
+                  : 'border-border focus-visible:outline-focus'
+              "
+              :disabled="savingProfile"
+              :aria-invalid="profileError('gender') != null"
+              :aria-describedby="profileError('gender') ? 'gender-error' : undefined"
+            >
+              <option value="">Select gender</option>
+              <option v-for="option in GENDER_OPTIONS" :key="option" :value="option">
+                {{ option }}
+              </option>
+            </select>
+            <p v-if="profileError('gender')" id="gender-error" class="text-sm text-danger">
+              {{ profileError('gender') }}
+            </p>
+          </div>
           <TextField
             id="dateOfBirth"
             v-model="form.dateOfBirth"

@@ -107,6 +107,16 @@ describe('validateUserForm', () => {
     ).toBe('Date of birth cannot be in the future.')
   })
 
+  it('accepts Male, Female, or Other and rejects any other gender', () => {
+    expect(validateUserForm(validValues({ gender: 'Male' }), 'edit').gender).toBeUndefined()
+    expect(validateUserForm(validValues({ gender: 'Female' }), 'edit').gender).toBeUndefined()
+    expect(validateUserForm(validValues({ gender: 'Other' }), 'edit').gender).toBeUndefined()
+    expect(validateUserForm(validValues({ gender: '' }), 'edit').gender).toBeUndefined()
+    expect(validateUserForm(validValues({ gender: 'unknown' }), 'edit').gender).toBe(
+      'Select Male, Female, or Other.',
+    )
+  })
+
   it('accepts a password at the 8 character minimum', () => {
     expect(
       validateUserForm(validValues({ password: '12345678' }), 'create').password,

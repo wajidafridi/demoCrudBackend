@@ -1,4 +1,5 @@
 import type { CreateUserRequest, UpdateUserRequest, UserResponse } from '@/types/user'
+import { genderChoiceError } from '@/features/genderOptions'
 import { dateOfBirthError } from '@/utils/dateOfBirth'
 
 export type UserFormField =
@@ -54,7 +55,6 @@ const LIMITS = {
   passwordMax: 100,
   address: 500,
   phone: 50,
-  gender: 50,
   imageUrl: 500,
 } as const
 
@@ -193,7 +193,7 @@ export function validateUserForm(
     errors.phoneNumber = phoneError
   }
 
-  const genderError = optionalText(values.gender, 'Gender', LIMITS.gender)
+  const genderError = genderChoiceError(values.gender)
   if (genderError != null) {
     errors.gender = genderError
   }

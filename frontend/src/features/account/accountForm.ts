@@ -1,4 +1,5 @@
 import type { AccountProfile, UpdateAccountRequest } from '@/types/account'
+import { genderChoiceError } from '@/features/genderOptions'
 import { dateOfBirthError } from '@/utils/dateOfBirth'
 
 export type AccountField =
@@ -26,7 +27,6 @@ const LIMITS = {
   name: 100,
   email: 256,
   phone: 50,
-  gender: 50,
   address: 500,
   passwordMin: 8,
   passwordMax: 100,
@@ -125,7 +125,7 @@ export function validateAccountForm(
     errors.phoneNumber = phoneError
   }
 
-  const genderError = optionalText(values.gender, 'Gender', LIMITS.gender)
+  const genderError = genderChoiceError(values.gender)
   if (genderError != null) {
     errors.gender = genderError
   }

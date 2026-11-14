@@ -12,6 +12,7 @@ import {
   type UserFormSubmission,
   type UserFormValues,
 } from '@/features/users/userForm'
+import { GENDER_OPTIONS } from '@/features/genderOptions'
 import type { RoleResponse } from '@/types/role'
 import { formatUtcDate } from '@/utils/dateOfBirth'
 
@@ -245,14 +246,31 @@ function onSubmit(): void {
         :disabled="submitting"
         :error="errorFor('phoneNumber')"
       />
-      <TextField
-        id="gender"
-        v-model="values.gender"
-        label="Gender"
-        :maxlength="50"
-        :disabled="submitting"
-        :error="errorFor('gender')"
-      />
+      <div class="space-y-1.5">
+        <label for="gender" class="block text-sm font-medium text-foreground">Gender</label>
+        <select
+          id="gender"
+          v-model="values.gender"
+          name="gender"
+          class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
+          :class="
+            errorFor('gender')
+              ? 'border-danger focus-visible:outline-danger'
+              : 'border-border focus-visible:outline-focus'
+          "
+          :disabled="submitting"
+          :aria-invalid="errorFor('gender') != null"
+          :aria-describedby="errorFor('gender') ? 'gender-error' : undefined"
+        >
+          <option value="">Select gender</option>
+          <option v-for="option in GENDER_OPTIONS" :key="option" :value="option">
+            {{ option }}
+          </option>
+        </select>
+        <p v-if="errorFor('gender')" id="gender-error" class="text-sm text-danger">
+          {{ errorFor('gender') }}
+        </p>
+      </div>
       <TextField
         id="dateOfBirth"
         v-model="values.dateOfBirth"
