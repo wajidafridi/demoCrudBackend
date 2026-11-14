@@ -6,6 +6,7 @@ import {
 } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { clearAccessSyncHandler, registerAccessSyncHandler } from '@/services/accessSync'
 import { http } from '@/services/http'
 import { clearAccessToken, setAccessToken } from '@/services/tokenStorage'
 import {
@@ -152,5 +153,65 @@ describe('http Axios interceptors', () => {
         adapter: async (config) => rejectWithStatus(config, 401, { success: false }),
       }),
     ).rejects.toMatchObject({ response: { status: 401 } })
+  })
+})
+
+describe('http access-version reporting', () => {
+  const onVersion = vi.fn()
+  const onForbidden = vi.fn()
+
+  function respondWith(status: number, headers: Record<string, string>) {
+    return async (config: InternalAxiosRequestConfig) => {
+      const response = { ...mockResponse(config, status), headers }
+      if (status >= 400) {
+        return Promise.reject(
+          new AxiosError('failed', AxiosError.ERR_BAD_REQUEST, config, undefined, response),
+        )
+      }
+      return response
+    }
+  }
+
+  beforeEach(() => {
+    onVersion.mockReset()
+    onForbidden.mockReset()
+    registerAccessSyncHandler({ onVersion, onForbidden })
+  })
+
+  afterEach(() => {
+    clearAccessSyncHandler()
+  })
+
+  it('reports the X-Access-Version header from a successful response', async () => {
+    await http.get('/users', { adapter: respondWith(200, { 'x-access-version': 'abc123' }) })
+
+    expect(onVersion).toHaveBeenCalledWith('abc123')
+    expect(onForbidden).not.toHaveBeenCalled()
+  })
+
+  it('reports the header and a forbidden signal on HTTP 403', async () => {
+    await expect(
+      http.put('/users/5', {}, { adapter: respondWith(403, { 'x-access-version': 'def456' }) }),
+    ).rejects.toMatchObject({ response: { status: 403 } })
+
+    expect(onVersion).toHaveBeenCalledWith('def456')
+    expect(onForbidden).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not report a version on HTTP 401', async () => {
+    registerUnauthorizedSessionHandler(vi.fn())
+
+    await expect(
+      http.get('/users', { adapter: respondWith(401, { 'x-access-version': 'stale' }) }),
+    ).rejects.toMatchObject({ response: { status: 401 } })
+
+    expect(onVersion).not.toHaveBeenCalled()
+    expect(onForbidden).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when the header is absent', async () => {
+    await http.get('/auth/login', { adapter: respondWith(200, {}) })
+
+    expect(onVersion).not.toHaveBeenCalled()
   })
 })

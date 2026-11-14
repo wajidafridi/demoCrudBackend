@@ -1,5 +1,6 @@
-import axios, { AxiosHeaders, isAxiosError } from 'axios'
+import axios, { AxiosHeaders, isAxiosError, type AxiosResponse } from 'axios'
 
+import { ACCESS_VERSION_HEADER, reportAccessVersion, reportForbidden } from '@/services/accessSync'
 import { getAccessToken } from '@/services/tokenStorage'
 import { handleUnauthorizedSession } from '@/services/unauthorizedHandler'
 
@@ -28,13 +29,38 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+function reportVersionFrom(response: AxiosResponse | undefined): void {
+  if (response == null) {
+    return
+  }
+
+  const value = AxiosHeaders.from(response.headers as Record<string, string>).get(
+    ACCESS_VERSION_HEADER,
+  )
+  if (typeof value === 'string' && value.length > 0) {
+    reportAccessVersion(value)
+  }
+}
+
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    reportVersionFrom(response)
+    return response
+  },
   (error: unknown) => {
     // Only HTTP 401 means "session is no longer valid".
     // 403 / 4xx / 5xx / success:false envelopes stay as normal API failures.
-    if (isAxiosError(error) && error.response?.status === 401) {
-      handleUnauthorizedSession()
+    if (isAxiosError(error)) {
+      const status = error.response?.status
+      if (status === 401) {
+        handleUnauthorizedSession()
+      } else {
+        reportVersionFrom(error.response)
+        if (status === 403) {
+          // A right may have been revoked since the UI last synced.
+          reportForbidden()
+        }
+      }
     }
 
     return Promise.reject(error)

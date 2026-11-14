@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import AppHeader from '@/components/AppHeader.vue'
@@ -13,6 +13,12 @@ import { useAuthStore } from '@/stores/authStore'
 import { THEME_STORAGE_KEY } from '@/theme/theme'
 import { useTheme } from '@/theme/useTheme'
 import { JwtClaimNames } from '@/utils/jwt'
+
+// The guard refreshes rights from the API; keep this shell test offline with the token's rights.
+vi.mock('@/services/authService', () => ({
+  login: vi.fn(),
+  fetchCurrentAccess: vi.fn().mockRejectedValue(new Error('offline')),
+}))
 
 /** Theme-specific palette utilities that the shell should no longer use. */
 const HARD_CODED_THEME_COLOR =

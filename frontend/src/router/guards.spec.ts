@@ -1,12 +1,19 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setupAuthGuard } from '@/router/guards'
 import { routes } from '@/router/routes'
 import { useAuthStore } from '@/stores/authStore'
 import { clearAccessToken, setAccessToken } from '@/services/tokenStorage'
 import { JwtClaimNames } from '@/utils/jwt'
+
+// These cases test the guard against the session's known rights. A failed refresh keeps them.
+// Live refresh behavior is covered in permissionRefresh.spec.ts.
+vi.mock('@/services/authService', () => ({
+  login: vi.fn(),
+  fetchCurrentAccess: vi.fn().mockRejectedValue(new Error('offline')),
+}))
 
 function makeToken(payload: Record<string, unknown>): string {
   const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')

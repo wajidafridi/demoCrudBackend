@@ -7,7 +7,7 @@ import { RouterLink } from 'vue-router'
     <h2 class="text-2xl font-semibold tracking-tight text-foreground">403 Access Denied</h2>
     <p class="mt-3 text-foreground-secondary">
       You are signed in, but you do not have permission to open this page. If you need access, ask
-      an administrator to update your role rights, then sign in again.
+      an administrator to update your role rights. New rights apply without signing in again.
     </p>
     <RouterLink
       :to="{ name: 'home' }"

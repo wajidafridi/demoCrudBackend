@@ -139,8 +139,14 @@ function cancelDelete(): void {
 
 async function confirmDelete(): Promise<void> {
   const role = deleteTarget.value
-  if (role == null || deleting.value || !canDelete.value) {
+  if (role == null || deleting.value) {
+    return
+  }
+
+  if (!canDelete.value) {
+    // Rights can change while the dialog is open. Say why nothing was deleted.
     deleteTarget.value = null
+    errorMessage.value = 'You no longer have permission to delete roles. Nothing was deleted.'
     return
   }
 

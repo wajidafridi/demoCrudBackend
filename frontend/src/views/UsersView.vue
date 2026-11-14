@@ -156,8 +156,16 @@ function cancelDelete(): void {
 
 async function confirmDelete(): Promise<void> {
   const user = deleteTarget.value
-  if (user == null || deleting.value || !canDelete.value || !canManage(user)) {
+  if (user == null || deleting.value) {
+    return
+  }
+
+  if (!canDelete.value || !canManage(user)) {
+    // Rights can change while the dialog is open. Say why nothing was deleted.
     deleteTarget.value = null
+    errorMessage.value = !canDelete.value
+      ? 'You no longer have permission to delete users. Nothing was deleted.'
+      : 'This user cannot be deleted. Nothing was deleted.'
     return
   }
 

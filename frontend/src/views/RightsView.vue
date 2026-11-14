@@ -19,8 +19,7 @@ import { useAuthStore } from '@/stores/authStore'
 import type { RightResponse } from '@/types/right'
 import type { RoleResponse } from '@/types/role'
 
-const TOKEN_NOTE =
-  'Existing access tokens keep their current permissions until they expire or the user signs in again.'
+const ACCESS_NOTE = 'Changes apply immediately, including to users who are already signed in.'
 
 const route = useRoute()
 const router = useRouter()
@@ -95,9 +94,9 @@ const removeConfirmTitle = computed(() =>
 const removeConfirmMessage = computed(() => {
   const name = selectedRole.value?.name ?? 'this role'
   if (confirmReason.value === 'unknown') {
-    return `Your role could not be verified, so this removal needs confirmation. Removing rights from ${name} may remove your own access after you sign in again. ${TOKEN_NOTE}`
+    return `Your role could not be verified, so this removal needs confirmation. Removing rights from ${name} may remove your own access immediately. ${ACCESS_NOTE}`
   }
-  return `You are about to remove rights from ${name}, which is your own role. You could lose access after you sign in again. ${TOKEN_NOTE}`
+  return `You are about to remove rights from ${name}, which is your own role. You could lose that access immediately. ${ACCESS_NOTE}`
 })
 
 function queryValue(): string | null {
@@ -280,7 +279,7 @@ async function assignSelected(): Promise<void> {
   try {
     await assignRoleRights(roleId, { rightIds })
     availableSelection.value = []
-    successMessage.value = `Rights assigned. ${TOKEN_NOTE}`
+    successMessage.value = `Rights assigned. ${ACCESS_NOTE}`
     await loadRights(roleId)
   } catch (error: unknown) {
     actionError.value = toApiClientError(error, 'Could not assign rights.').message
@@ -351,7 +350,7 @@ async function removeSelected(): Promise<void> {
     confirmOpen.value = false
     confirmRoleId.value = null
     confirmReason.value = null
-    successMessage.value = `Rights removed. ${TOKEN_NOTE}`
+    successMessage.value = `Rights removed. ${ACCESS_NOTE}`
     await loadRights(roleId)
   } catch (error: unknown) {
     confirmOpen.value = false
@@ -395,7 +394,7 @@ onUnmounted(() => {
         Choose a role, then assign or remove the rights you can see. These lists include only rights
         in your current access. The role may have other rights that are not shown.
       </p>
-      <p class="mt-2 text-sm text-foreground-muted">{{ TOKEN_NOTE }}</p>
+      <p class="mt-2 text-sm text-foreground-muted">{{ ACCESS_NOTE }}</p>
     </header>
 
     <AlertBanner v-if="rolesError != null" variant="error" :message="rolesError" />

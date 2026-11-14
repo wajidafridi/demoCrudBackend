@@ -31,4 +31,4 @@ alwaysApply: false
 
 - On HTTP **401** from the shared Axios client: the response interceptor delegates to the auth/session handler. That handler clears auth state (including the stored token), stops further authenticated calls, and navigates to login (preserve return URL if useful).
 - Do not log the user out solely because a response body has `success: false`.
-- Treat JWT permissions as a snapshot until expiry (~30 min on the backend). After role-right changes, the user must re-login for new claims.
+- JWT permissions only seed the UI. The store refreshes from `GET /api/auth/me` when `X-Access-Version` changes, on 403, before permission routes, on tab focus, and every 60 s. Never require a re-login for rights changes.

@@ -238,7 +238,7 @@ describe('RightsView', () => {
     expect(assignedPanel.text()).toContain('User_View')
     expect(assignedPanel.text()).toContain('1 shown · 1 total')
     expect(wrapper.text()).toContain('only rights in your current access')
-    expect(wrapper.text()).toContain('until they expire')
+    expect(wrapper.text()).toContain('Changes apply immediately')
   })
 
   it('filters each panel by right name without dropping hidden selections', async () => {
@@ -319,7 +319,7 @@ describe('RightsView', () => {
       'Every right you can see is already assigned to this role.',
     )
     expect(wrapper.text()).toContain('Rights assigned.')
-    expect(wrapper.text()).toContain('until they expire')
+    expect(wrapper.text()).toContain('Changes apply immediately')
   })
 
   it('removes the selected rights in one request and refreshes from the server', async () => {
