@@ -9,7 +9,7 @@ import {
   type AccountFormValues,
 } from '@/features/account/accountForm'
 import type { AccountProfile } from '@/types/account'
-import { formatLocalDate } from '@/utils/dateOfBirth'
+import { formatUtcDate } from '@/utils/dateOfBirth'
 
 const profile: AccountProfile = {
   id: 7,
@@ -26,6 +26,12 @@ const profile: AccountProfile = {
   roleName: 'Admin',
   isSystem: false,
   createdAt: '2026-01-01T00:00:00Z',
+}
+
+function utcDate(clock: Date, dayOffset: number): string {
+  const date = new Date(clock)
+  date.setUTCDate(date.getUTCDate() + dayOffset)
+  return formatUtcDate(date)
 }
 
 function values(overrides: Partial<AccountFormValues> = {}): AccountFormValues {
@@ -57,18 +63,19 @@ describe('account form', () => {
     )
   })
 
-  it('accepts a past date and today, and rejects a future date of birth', () => {
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(today.getDate() + 1)
+  it('accepts yesterday and the UTC date, and rejects the next UTC date', () => {
+    const clock = new Date()
 
     expect(validateAccountForm(values({ dateOfBirth: '1990-01-01' })).dateOfBirth).toBeUndefined()
     expect(
-      validateAccountForm(values({ dateOfBirth: formatLocalDate(today) })).dateOfBirth,
+      validateAccountForm(values({ dateOfBirth: utcDate(clock, -1) })).dateOfBirth,
     ).toBeUndefined()
     expect(
-      validateAccountForm(values({ dateOfBirth: formatLocalDate(tomorrow) })).dateOfBirth,
-    ).toBe('Date of birth cannot be in the future.')
+      validateAccountForm(values({ dateOfBirth: utcDate(clock, 0) })).dateOfBirth,
+    ).toBeUndefined()
+    expect(validateAccountForm(values({ dateOfBirth: utcDate(clock, 1) })).dateOfBirth).toBe(
+      'Date of birth cannot be in the future.',
+    )
   })
 
   it('builds an update body without identity, role, or password fields', () => {

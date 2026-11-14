@@ -5,6 +5,7 @@ import AccessDeniedView from '@/views/AccessDeniedView.vue'
 import AccountView from '@/views/AccountView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 import RoleFormView from '@/views/RoleFormView.vue'
 import RightsView from '@/views/RightsView.vue'
 import RolesView from '@/views/RolesView.vue'
@@ -142,5 +143,13 @@ export const routes: RouteRecordRaw[] = [
         },
       },
     ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: NotFoundView,
+    meta: {
+      title: 'Page Not Found',
+    },
   },
 ]

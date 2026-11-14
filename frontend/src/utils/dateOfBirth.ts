@@ -1,8 +1,12 @@
-/** Calendar date `YYYY-MM-DD` in the user's local timezone. */
-export function formatLocalDate(value: Date): string {
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
-  return `${value.getFullYear()}-${month}-${day}`
+/**
+ * Date of birth is a calendar date (`YYYY-MM-DD`), not a timestamp.
+ * "Today" is the current UTC calendar date. The browser and the API both
+ * reject a date after that UTC date, so a local midnight does not change the result.
+ */
+export function formatUtcDate(value: Date): string {
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(value.getUTCDate()).padStart(2, '0')
+  return `${value.getUTCFullYear()}-${month}-${day}`
 }
 
 export function isValidDateInput(value: string): boolean {
@@ -20,7 +24,7 @@ export function isValidDateInput(value: string): boolean {
   )
 }
 
-/** Empty is allowed. A real calendar date after today is rejected. */
+/** Empty is allowed. A real calendar date after the UTC date of `today` is rejected. */
 export function dateOfBirthError(value: string, today = new Date()): string | null {
   const trimmed = value.trim()
   if (trimmed.length === 0) {
@@ -31,7 +35,7 @@ export function dateOfBirthError(value: string, today = new Date()): string | nu
     return 'Enter a valid date of birth.'
   }
 
-  if (trimmed > formatLocalDate(today)) {
+  if (trimmed > formatUtcDate(today)) {
     return 'Date of birth cannot be in the future.'
   }
 

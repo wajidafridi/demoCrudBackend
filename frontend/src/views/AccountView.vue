@@ -20,14 +20,14 @@ import {
   type PasswordFormValues,
 } from '@/features/account/accountForm'
 import { changePassword, getAccount, updateAccount } from '@/services/accountService'
-import { formatLocalDate } from '@/utils/dateOfBirth'
+import { formatUtcDate } from '@/utils/dateOfBirth'
 import { toApiClientError } from '@/services/apiError'
 import { useAuthStore } from '@/stores/authStore'
 import type { AccountProfile } from '@/types/account'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const maxDateOfBirth = formatLocalDate(new Date())
+const maxDateOfBirth = formatUtcDate(new Date())
 
 const profile = ref<AccountProfile | null>(null)
 const loading = ref(true)

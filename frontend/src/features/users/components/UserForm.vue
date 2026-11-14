@@ -13,7 +13,7 @@ import {
   type UserFormValues,
 } from '@/features/users/userForm'
 import type { RoleResponse } from '@/types/role'
-import { formatLocalDate } from '@/utils/dateOfBirth'
+import { formatUtcDate } from '@/utils/dateOfBirth'
 
 const props = defineProps<{
   mode: UserFormMode
@@ -33,7 +33,7 @@ const emit = defineEmits<{
   dirty: [value: boolean]
 }>()
 
-const maxDateOfBirth = formatLocalDate(new Date())
+const maxDateOfBirth = formatUtcDate(new Date())
 
 const values = reactive<UserFormValues>({ ...props.initialValues })
 const dirty = computed(() =>

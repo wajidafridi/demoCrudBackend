@@ -7,7 +7,7 @@ import { UNSAVED_CHANGES_MESSAGE } from '@/composables/useUnsavedChanges'
 import { ApiClientError } from '@/services/apiError'
 import { changePassword, getAccount, updateAccount } from '@/services/accountService'
 import type { AccountProfile } from '@/types/account'
-import { formatLocalDate } from '@/utils/dateOfBirth'
+import { formatUtcDate } from '@/utils/dateOfBirth'
 import AccountView from '@/views/AccountView.vue'
 
 vi.mock('@/services/accountService', () => ({
@@ -380,6 +380,6 @@ describe('AccountView', () => {
     const { wrapper } = await mountAccount()
     await flushPromises()
 
-    expect(wrapper.get('#dateOfBirth').attributes('max')).toBe(formatLocalDate(new Date()))
+    expect(wrapper.get('#dateOfBirth').attributes('max')).toBe(formatUtcDate(new Date()))
   })
 })

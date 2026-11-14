@@ -23,6 +23,9 @@ describe('document titles', () => {
       login: `Sign in · ${APP_TITLE}`,
     }
 
+    await router.push('/no-such-page')
+    expect(document.title).toBe(`Page Not Found · ${APP_TITLE}`)
+
     for (const [name, title] of Object.entries(expected)) {
       await router.push({ name })
       expect(document.title).toBe(title)

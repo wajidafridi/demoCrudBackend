@@ -147,6 +147,22 @@ describe('auth navigation guard', () => {
     expect(router.currentRoute.value.name).toBe('account')
   })
 
+  it('shows the not-found page for an unknown path without signing in', async () => {
+    const router = createTestRouter()
+    await router.push('/no-such-page')
+    expect(router.currentRoute.value.name).toBe('not-found')
+  })
+
+  it('keeps a signed-in user on the not-found page', async () => {
+    installSession({ permissions: ['User_View'] })
+    const router = createTestRouter()
+    await router.push('/no-such-page')
+    expect(router.currentRoute.value.name).toBe('not-found')
+
+    await router.push({ name: 'users' })
+    expect(router.currentRoute.value.name).toBe('users')
+  })
+
   it('does not loop between login and access-denied routes', async () => {
     const router = createTestRouter()
 

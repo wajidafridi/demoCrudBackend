@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -115,22 +116,28 @@ namespace DemoCrudBackend.Tests
             var user = await AddUserAsync(NewName("member"), roleId, "Member");
             using var client = ClientFor(user, Permissions.UserEdit);
 
-            var future = await client.PutAsJsonAsync(
-                "/api/account",
-                ProfileBody(user.Email, "Ada", ("dateOfBirth", DateTime.UtcNow.Date.AddDays(2))));
+            var todayUtc = DateOnly.FromDateTime(DateTime.UtcNow);
 
-            Assert.Equal(HttpStatusCode.BadRequest, future.StatusCode);
-            var body = await ReadAsync(future);
+            var yesterday = await client.PutAsJsonAsync(
+                "/api/account",
+                ProfileBody(user.Email, "Ada", ("dateOfBirth", CalendarDate(todayUtc.AddDays(-1)))));
+            Assert.Equal(HttpStatusCode.OK, yesterday.StatusCode);
+
+            var today = await client.PutAsJsonAsync(
+                "/api/account",
+                ProfileBody(user.Email, "Ada", ("dateOfBirth", CalendarDate(todayUtc))));
+            Assert.Equal(HttpStatusCode.OK, today.StatusCode);
+
+            var tomorrow = await client.PutAsJsonAsync(
+                "/api/account",
+                ProfileBody(user.Email, "Ada", ("dateOfBirth", CalendarDate(todayUtc.AddDays(1)))));
+
+            Assert.Equal(HttpStatusCode.BadRequest, tomorrow.StatusCode);
+            var body = await ReadAsync(tomorrow);
             Assert.Equal("Date of birth cannot be in the future.", body.GetProperty("message").GetString());
             Assert.Equal(
                 "Date of birth cannot be in the future.",
                 body.GetProperty("errors").GetProperty("DateOfBirth")[0].GetString());
-
-            var today = await client.PutAsJsonAsync(
-                "/api/account",
-                ProfileBody(user.Email, "Ada", ("dateOfBirth", DateTime.UtcNow.Date)));
-
-            Assert.Equal(HttpStatusCode.OK, today.StatusCode);
         }
 
         [Fact]
@@ -150,7 +157,7 @@ namespace DemoCrudBackend.Tests
                 userName,
                 password = "Secret12",
                 roleId = viewerRoleId,
-                dateOfBirth = DateTime.UtcNow.Date.AddDays(2)
+                dateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -434,6 +441,11 @@ namespace DemoCrudBackend.Tests
             Assert.Equal("Validation failed", body.GetProperty("message").GetString());
             Assert.True(body.GetProperty("errors").TryGetProperty("Password", out _));
             Assert.Null(await FindUserByNameAsync(userName));
+        }
+
+        private static string CalendarDate(DateOnly date)
+        {
+            return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         }
 
         private HttpClient ClientFor(TestUser user, params string[] permissions)

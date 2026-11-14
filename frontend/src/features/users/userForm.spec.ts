@@ -12,7 +12,7 @@ import {
   type UserFormValues,
 } from '@/features/users/userForm'
 import type { UserResponse } from '@/types/user'
-import { formatLocalDate } from '@/utils/dateOfBirth'
+import { formatUtcDate } from '@/utils/dateOfBirth'
 
 function validValues(overrides: Partial<UserFormValues> = {}): UserFormValues {
   return {
@@ -45,6 +45,12 @@ const user: UserResponse = {
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: null,
   age: 36,
+}
+
+function utcDate(clock: Date, dayOffset: number): string {
+  const date = new Date(clock)
+  date.setUTCDate(date.getUTCDate() + dayOffset)
+  return formatUtcDate(date)
 }
 
 describe('validateUserForm', () => {
@@ -84,19 +90,20 @@ describe('validateUserForm', () => {
     expect(errors.dateOfBirth).toBe('Enter a valid date of birth.')
   })
 
-  it('accepts a past date and today, and rejects a future date of birth', () => {
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(today.getDate() + 1)
+  it('accepts yesterday and the UTC date, and rejects the next UTC date', () => {
+    const clock = new Date()
 
     expect(
       validateUserForm(validValues({ dateOfBirth: '1990-01-01' }), 'edit').dateOfBirth,
     ).toBeUndefined()
     expect(
-      validateUserForm(validValues({ dateOfBirth: formatLocalDate(today) }), 'edit').dateOfBirth,
+      validateUserForm(validValues({ dateOfBirth: utcDate(clock, -1) }), 'edit').dateOfBirth,
     ).toBeUndefined()
     expect(
-      validateUserForm(validValues({ dateOfBirth: formatLocalDate(tomorrow) }), 'edit').dateOfBirth,
+      validateUserForm(validValues({ dateOfBirth: utcDate(clock, 0) }), 'edit').dateOfBirth,
+    ).toBeUndefined()
+    expect(
+      validateUserForm(validValues({ dateOfBirth: utcDate(clock, 1) }), 'edit').dateOfBirth,
     ).toBe('Date of birth cannot be in the future.')
   })
 
