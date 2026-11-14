@@ -203,7 +203,7 @@ function onSubmit(): void {
           v-model="values.roleId"
           name="roleId"
           required
-          class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
+          class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
           :class="
             errorFor('roleId') || rolesError
               ? 'border-danger focus-visible:outline-danger'

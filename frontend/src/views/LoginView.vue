@@ -107,7 +107,7 @@ async function onSubmit(): Promise<void> {
               name="username"
               autocomplete="username"
               :disabled="isSubmitting"
-              class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
+              class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
               :class="
                 usernameError
                   ? 'border-danger focus-visible:outline-danger'
@@ -131,7 +131,7 @@ async function onSubmit(): Promise<void> {
                 name="password"
                 autocomplete="current-password"
                 :disabled="isSubmitting"
-                class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
+                class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
                 :class="
                   passwordError
                     ? 'border-danger focus-visible:outline-danger'

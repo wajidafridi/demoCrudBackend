@@ -46,7 +46,7 @@ function onInput(event: Event): void {
         :maxlength="maxlength"
         :max="max"
         :inputmode="inputmode"
-        class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none placeholder:text-foreground-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
+        class="block h-10 w-full rounded-lg border bg-surface px-3 text-foreground outline-none placeholder:text-foreground-muted focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-60"
         :class="
           error
             ? 'border-danger focus-visible:outline-danger'
