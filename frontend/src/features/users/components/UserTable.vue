@@ -17,6 +17,13 @@ const emit = defineEmits<{
   delete: [user: UserResponse]
 }>()
 
+/**
+ * Caps a cell at 16rem and breaks only values longer than that (the API allows 100-character
+ * names and 256-character emails). Without it one long value widens the whole table and pushes
+ * the Actions column off-screen. Normal values keep their natural width and never break.
+ */
+const LONG_TEXT_CLASS = 'block max-w-64 wrap-break-word'
+
 const showActions = computed(() => props.canEdit || props.canDelete)
 
 function displayName(user: UserResponse): string {
@@ -68,11 +75,15 @@ function canManage(user: UserResponse): boolean {
       </thead>
       <tbody class="divide-y divide-border-subtle">
         <tr v-for="user in users" :key="user.id" class="text-foreground hover:bg-surface-secondary">
-          <td class="px-3 py-3.5 font-medium break-words">{{ displayName(user) }}</td>
-          <td class="px-3 py-3.5 whitespace-nowrap text-foreground-secondary">
-            {{ user.userName }}
+          <td class="px-3 py-3.5 font-medium">
+            <span :class="LONG_TEXT_CLASS">{{ displayName(user) }}</span>
           </td>
-          <td class="px-3 py-3.5 break-words">{{ user.email }}</td>
+          <td class="px-3 py-3.5 text-foreground-secondary">
+            <span :class="LONG_TEXT_CLASS">{{ user.userName }}</span>
+          </td>
+          <td class="px-3 py-3.5">
+            <span :class="LONG_TEXT_CLASS">{{ user.email }}</span>
+          </td>
           <td class="px-3 py-3.5">
             <span
               class="inline-flex max-w-full rounded-full bg-surface-secondary px-2.5 py-1 text-xs font-medium break-words text-foreground-secondary"
