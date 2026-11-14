@@ -1,7 +1,7 @@
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { describe, expect, it } from 'vitest'
 
-import { APP_TITLE, formatDocumentTitle } from '@/router/documentTitle'
+import { APP_TITLE, formatDocumentTitle, setupDocumentTitle } from '@/router/documentTitle'
 import { routes } from '@/router/routes'
 
 describe('document titles', () => {
@@ -10,9 +10,7 @@ describe('document titles', () => {
       history: createMemoryHistory(),
       routes,
     })
-    router.afterEach((to) => {
-      document.title = formatDocumentTitle(to)
-    })
+    setupDocumentTitle(router)
 
     const expected: Record<string, string> = {
       home: `Dashboard · ${APP_TITLE}`,
@@ -40,5 +38,22 @@ describe('document titles', () => {
         matched: [{ meta: { title: `Already named · ${APP_TITLE}` } }] as never,
       }),
     ).toBe(`Already named · ${APP_TITLE}`)
+  })
+
+  it('keeps the current title when a guard cancels the navigation', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes,
+    })
+    setupDocumentTitle(router)
+    // Same effect as choosing "stay on this page" in the unsaved-changes prompt.
+    router.beforeEach((to) => to.name !== 'users')
+
+    await router.push({ name: 'account' })
+    expect(document.title).toBe(`My Account · ${APP_TITLE}`)
+
+    await router.push({ name: 'users' })
+    expect(router.currentRoute.value.name).toBe('account')
+    expect(document.title).toBe(`My Account · ${APP_TITLE}`)
   })
 })

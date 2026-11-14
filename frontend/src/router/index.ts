@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { formatDocumentTitle } from '@/router/documentTitle'
+import { setupDocumentTitle } from '@/router/documentTitle'
 import { setupAuthGuard } from '@/router/guards'
 import { routes } from '@/router/routes'
 
@@ -10,9 +10,6 @@ const router = createRouter({
 })
 
 setupAuthGuard(router)
-
-router.afterEach((to) => {
-  document.title = formatDocumentTitle(to)
-})
+setupDocumentTitle(router)
 
 export default router
