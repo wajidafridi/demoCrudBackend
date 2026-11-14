@@ -36,6 +36,7 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IRightService, RightService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAccessSnapshotService, AccessSnapshotService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ApiAuthorizationMiddlewareResultHandler>();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
@@ -104,6 +105,13 @@ builder.Services
             NameClaimType = ClaimTypes.Name,
             RoleClaimType = ClaimTypes.Role
         };
+
+        // The token proves identity only. Role and rights are reloaded from the database
+        // on every authenticated request, so revocations and grants apply immediately.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = AccessRefresh.OnTokenValidated
+        };
     });
 
 const string VueFrontendCorsPolicy = "VueFrontend";
@@ -132,6 +140,8 @@ if (corsOrigins.Count > 0)
             // Add any custom request header here (e.g. X-Request-Id).
             policy.WithOrigins(corsOrigins.ToArray())
                 .WithHeaders("Authorization", "Content-Type")
+                // Lets the SPA detect a role or right change on any API response.
+                .WithExposedHeaders(AccessSnapshot.VersionHeader)
                 .WithMethods(
                     HttpMethods.Get,
                     HttpMethods.Post,

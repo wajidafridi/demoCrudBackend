@@ -445,27 +445,24 @@ namespace DemoCrudBackend.Tests
         [Fact]
         public async Task RemoveRights_RightOutsideCallerPermissions_ReturnsForbidden()
         {
+            // The ceiling uses the caller's rights in the database, not the token claims.
             var callerRoleId = await AddRoleAsync(
                 NewName("manager"),
                 Permissions.RoleRightAssign,
                 Permissions.RoleView,
-                Permissions.RightView,
-                Permissions.UserDelete);
-            var caller = await AddUserAsync(NewName("caller"), callerRoleId, "Manager");
-            using var client = ClientFor(
-                caller,
-                Permissions.RoleRightAssign,
-                Permissions.RoleView,
                 Permissions.RightView);
+            var targetRoleId = await AddRoleAsync(NewName("target"), Permissions.UserDelete);
+            var caller = await AddUserAsync(NewName("caller"), callerRoleId, "Manager");
+            using var client = ClientFor(caller, Permissions.All);
 
             var response = await DeleteJsonAsync(
                 client,
-                $"/api/roles/{callerRoleId}/rights",
+                $"/api/roles/{targetRoleId}/rights",
                 new { rightIds = new[] { await GetRightIdAsync(Permissions.UserDelete) } });
 
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
             await AssertFailureAsync(response, "You can only change rights that are assigned to you.");
-            Assert.True(await RoleHasRightAsync(callerRoleId, Permissions.UserDelete));
+            Assert.True(await RoleHasRightAsync(targetRoleId, Permissions.UserDelete));
         }
 
         private HttpClient ClientFor(TestUser user, params string[] permissions)

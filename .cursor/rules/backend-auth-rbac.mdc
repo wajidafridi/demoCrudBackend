@@ -13,7 +13,8 @@ alwaysApply: false
 - Changing a password does not revoke access tokens. Tokens remain valid until they expire.
 - New passwords on user creation and account password change are 8 to 100 characters. No other complexity rules are applied.
 - Token claims: `NameIdentifier`, `Name`, `Role`, repeated `"permission"` claims from RoleRights.
-- Permissions are a **snapshot until token expiry** (~30 min). Service-layer rules still protect system resources.
+- The JWT only identifies the caller. `AccessRefresh.OnTokenValidated` (wired in `Program.cs`) replaces the `Role` and `permission` claims with the current database values on **every request**. Revoked and granted rights apply immediately. A deleted user gets 401. A lookup failure must fail closed (500), never fall back to token claims. Do not add a cache without an invalidation story.
+- Authenticated responses carry `X-Access-Version`; `GET /api/auth/me` returns current role and rights. Service-layer rules still protect system resources.
 - Pass `CancellationToken` through login, user, role, and right service methods.
 
 ## Permissions
@@ -21,7 +22,7 @@ alwaysApply: false
 - Seeded rights: `User_*`, `Role_View`, `Role_Create`, `Role_Edit`, `Role_Delete`, `RoleRight_Assign`, `Right_View`.
 - Register policies from `Permissions.All` in `Program.cs`.
 - Controllers use `[Authorize(Policy = Permissions.X)]`. Handler requires authenticated user, a role claim, and matching permission claim.
-- Role-right changes compare submitted right names with `CallerContext.PermissionNames` (the token snapshot).
+- Role-right changes compare submitted right names with `CallerContext.PermissionNames` (the database rights loaded for this request).
 - Do **not** hardcode business role names (`Admin`, `User`, `Coordinator`, …) in authorization logic.
 
 ## SuperAdmin / system protection

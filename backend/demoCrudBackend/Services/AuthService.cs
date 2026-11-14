@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using DemoCrudBackend.Authorization;
 using DemoCrudBackend.Data;
 using DemoCrudBackend.Dtos;
 using DemoCrudBackend.Models;
@@ -148,6 +149,7 @@ namespace DemoCrudBackend.Services
                 user.UserName,
                 user.Role.Name,
                 permissions);
+            var snapshot = AccessSnapshot.Create(user.Id, user.UserName, user.RoleId, user.Role.Name, permissions);
 
             return new LoginResponseDto
             {
@@ -157,7 +159,9 @@ namespace DemoCrudBackend.Services
                 RoleId = user.RoleId,
                 RoleName = user.Role.Name,
                 AccessToken = accessToken.AccessToken,
-                ExpiresAtUtc = accessToken.ExpiresAtUtc
+                ExpiresAtUtc = accessToken.ExpiresAtUtc,
+                Permissions = snapshot.Permissions,
+                AccessVersion = snapshot.Version
             };
         }
     }

@@ -71,7 +71,7 @@ namespace DemoCrudBackend.Tests
         }
 
         [Fact]
-        public async Task GetAccount_DeletedCaller_ReturnsNotFoundWithoutPasswordHash()
+        public async Task GetAccount_DeletedCaller_ReturnsUnauthorizedWithoutPasswordHash()
         {
             var roleId = await AddRoleAsync(NewName("gone"), Permissions.UserView);
             var user = await AddUserAsync(NewName("gone"), roleId, "Gone");
@@ -79,9 +79,12 @@ namespace DemoCrudBackend.Tests
             await DeleteUserAsync(user.Id);
 
             var response = await client.GetAsync("/api/account");
+            var json = await response.Content.ReadAsStringAsync();
 
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            await AssertFailureAsync(response, "Your account was not found.");
+            // The token is still signed and unexpired, but its account is gone, so the session is invalid.
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            await AssertFailureAsync(response, "Authentication is required.");
+            Assert.DoesNotContain("passwordHash", json, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

@@ -70,7 +70,9 @@ namespace DemoCrudBackend.Tests
         [Fact]
         public async Task Users_WithoutPermission_Returns403()
         {
-            using var client = _factory.CreateAuthenticatedClient(41, "plain", "Plain", []);
+            var roleId = await TestData.AddRoleAsync(_factory, TestData.NewName("plain"));
+            var user = await TestData.AddUserAsync(_factory, TestData.NewName("plain"), roleId);
+            using var client = _factory.CreateAuthenticatedClient(user.Id, user.UserName, "Plain", []);
 
             var response = await client.GetAsync("/api/users");
 
@@ -81,7 +83,9 @@ namespace DemoCrudBackend.Tests
         [Fact]
         public async Task Users_MissingId_Returns404()
         {
-            using var client = _factory.CreateAuthenticatedClient(42, "reader", "Reader", [Permissions.UserView]);
+            var roleId = await TestData.AddRoleAsync(_factory, TestData.NewName("reader"), Permissions.UserView);
+            var user = await TestData.AddUserAsync(_factory, TestData.NewName("reader"), roleId);
+            using var client = _factory.CreateAuthenticatedClient(user.Id, user.UserName, "Reader", [Permissions.UserView]);
 
             var response = await client.GetAsync("/api/users/99999999");
 
